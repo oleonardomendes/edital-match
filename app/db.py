@@ -69,10 +69,18 @@ _engine = None
 _SessionLocal = None
 
 
+def _url_psycopg(url: str) -> str:
+    """Aceita a URL no formato do Render/Heroku (postgres://) e usa o driver psycopg 3."""
+    for prefixo in ("postgres://", "postgresql://"):
+        if url.startswith(prefixo):
+            return "postgresql+psycopg://" + url[len(prefixo):]
+    return url
+
+
 def engine():
     global _engine, _SessionLocal
     if _engine is None:
-        _engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+        _engine = create_engine(_url_psycopg(get_settings().database_url), pool_pre_ping=True)
         _SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False)
     return _engine
 
