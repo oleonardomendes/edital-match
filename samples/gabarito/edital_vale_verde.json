@@ -1,0 +1,134 @@
+{
+  "orgao": "Prefeitura Municipal de Vale Verde",
+  "numero": "Pregão Eletrônico nº 012/2026",
+  "objeto": "Contratação de empresa especializada em desenvolvimento, manutenção e sustentação de sistemas, na modalidade de fábrica de software",
+  "perfis": [
+    {
+      "cargo": "Gerente de Projetos",
+      "quantidade": 1,
+      "formacao": [
+        {
+          "nivel_minimo": "graduacao",
+          "areas": [
+            "Tecnologia da Informação",
+            "Ciência da Computação",
+            "Sistemas de Informação",
+            "Engenharia de Software",
+            "Análise e Desenvolvimento de Sistemas"
+          ],
+          "obrigatorio": true,
+          "peso": 3,
+          "texto_original": "diploma de graduação de nível superior em qualquer área de Tecnologia da Informação, como Ciência da Computação, Sistemas de Informação, Engenharia de Software ou Análise e Desenvolvimento de Sistemas. Exigido."
+        }
+      ],
+      "experiencias": [
+        {
+          "area": "gestão de projetos de tecnologia da informação",
+          "anos_minimos": 5,
+          "obrigatorio": true,
+          "peso": 3,
+          "texto_original": "Experiência mínima de 5 (cinco) anos em gestão de projetos de tecnologia da informação. Exigido."
+        }
+      ],
+      "certificacoes": [
+        {
+          "nome": "PMP",
+          "alternativas": [
+            "Project Management Professional"
+          ],
+          "obrigatorio": true,
+          "peso": 3,
+          "texto_original": "Certificação PMP (Project Management Professional) emitida pelo PMI. Exigido."
+        },
+        {
+          "nome": "Professional Scrum Master",
+          "alternativas": [
+            "PSM",
+            "Certified ScrumMaster",
+            "CSM"
+          ],
+          "obrigatorio": false,
+          "peso": 2,
+          "texto_original": "Certificação em metodologias ágeis, como Professional Scrum Master (PSM) ou Certified ScrumMaster (CSM). Desejável, vale 2 pontos."
+        }
+      ],
+      "competencias": [
+        {
+          "nome": "Jira",
+          "alternativas": [
+            "MS Project"
+          ],
+          "obrigatorio": false,
+          "peso": 1,
+          "texto_original": "Conhecimento em ferramentas de gestão como Jira ou MS Project. Desejável, vale 1 ponto."
+        }
+      ]
+    },
+    {
+      "cargo": "Analista de Sistemas Sênior",
+      "quantidade": 2,
+      "formacao": [
+        {
+          "nivel_minimo": "graduacao",
+          "areas": [
+            "Ciência da Computação",
+            "Sistemas de Informação",
+            "Engenharia de Software",
+            "Análise e Desenvolvimento de Sistemas"
+          ],
+          "obrigatorio": true,
+          "peso": 3,
+          "texto_original": "diploma de graduação em Ciência da Computação, Sistemas de Informação, Engenharia de Software ou Análise e Desenvolvimento de Sistemas. Exigido."
+        }
+      ],
+      "experiencias": [
+        {
+          "area": "desenvolvimento de sistemas",
+          "anos_minimos": 6,
+          "obrigatorio": true,
+          "peso": 3,
+          "texto_original": "Experiência mínima de 6 (seis) anos em desenvolvimento de sistemas. Exigido."
+        }
+      ],
+      "certificacoes": [
+        {
+          "nome": "ITIL Foundation",
+          "alternativas": [],
+          "obrigatorio": false,
+          "peso": 1,
+          "texto_original": "Certificação ITIL Foundation. Desejável, vale 1 ponto."
+        }
+      ],
+      "competencias": [
+        {
+          "nome": "Oracle",
+          "obrigatorio": true,
+          "peso": 3,
+          "texto_original": "Conhecimento em banco de dados Oracle e linguagem PL/SQL. Exigido.",
+          "alternativas": []
+        },
+        {
+          "nome": "PL/SQL",
+          "obrigatorio": true,
+          "peso": 3,
+          "texto_original": "Conhecimento em banco de dados Oracle e linguagem PL/SQL. Exigido.",
+          "alternativas": []
+        },
+        {
+          "nome": "Java",
+          "obrigatorio": false,
+          "peso": 2,
+          "texto_original": "Conhecimento em Java. Desejável, vale 2 pontos.",
+          "alternativas": []
+        },
+        {
+          "nome": "APIs REST",
+          "obrigatorio": false,
+          "peso": 1,
+          "texto_original": "Conhecimento em integração de sistemas por APIs REST. Desejável, vale 1 ponto.",
+          "alternativas": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+PREFEITURA MUNICIPAL DE VALE VERDE (MUNICÍPIO FICTÍCIO)
+SECRETARIA MUNICIPAL DE ADMINISTRAÇÃO
+PREGÃO ELETRÔNICO Nº 012/2026
+TERMO DE REFERÊNCIA - ANEXO I
+
+1. OBJETO
+Contratação de empresa especializada em desenvolvimento, manutenção e sustentação de sistemas, na modalidade de fábrica de software, para atender às demandas da Secretaria Municipal de Administração.
+
+2. EQUIPE TÉCNICA MÍNIMA
+A CONTRATADA deverá comprovar, na fase de habilitação, que dispõe dos profissionais abaixo, por meio de currículo, diploma e certificados.
+
+2.1 GERENTE DE PROJETOS (1 profissional)
+a) Formação: diploma de graduação de nível superior em qualquer área de Tecnologia da Informação, como Ciência da Computação, Sistemas de Informação, Engenharia de Software ou Análise e Desenvolvimento de Sistemas. Exigido.
+b) Experiência mínima de 5 (cinco) anos em gestão de projetos de tecnologia da informação. Exigido.
+c) Certificação PMP (Project Management Professional) emitida pelo PMI. Exigido.
+d) Certificação em metodologias ágeis, como Professional Scrum Master (PSM) ou Certified ScrumMaster (CSM). Desejável, vale 2 pontos.
+e) Conhecimento em ferramentas de gestão como Jira ou MS Project. Desejável, vale 1 ponto.
+
+2.2 ANALISTA DE SISTEMAS SÊNIOR (2 profissionais)
+a) Formação: diploma de graduação em Ciência da Computação, Sistemas de Informação, Engenharia de Software ou Análise e Desenvolvimento de Sistemas. Exigido.
+b) Experiência mínima de 6 (seis) anos em desenvolvimento de sistemas. Exigido.
+c) Conhecimento em banco de dados Oracle e linguagem PL/SQL. Exigido.
+d) Conhecimento em Java. Desejável, vale 2 pontos.
+e) Conhecimento em integração de sistemas por APIs REST. Desejável, vale 1 ponto.
+f) Certificação ITIL Foundation. Desejável, vale 1 ponto.
+
+3. COMPROVAÇÃO
+3.1 A experiência será comprovada por carteira de trabalho, contrato de prestação de serviços ou declaração do empregador.
+3.2 Períodos de experiência concomitantes serão contados uma única vez.
+3.3 O profissional que não atender a qualquer requisito exigido será considerado inapto para o perfil.

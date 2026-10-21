@@ -1,0 +1,544 @@
+{
+  "edital:7262a1bb8164c72e00d1ac60b1ed7089253f0885514cd191658feb70ac5fbcb6": {
+    "tipo": "edital",
+    "arquivo": "edital_vale_verde.pdf",
+    "valor": {
+      "orgao": "Prefeitura Municipal de Vale Verde",
+      "numero": "Pregão Eletrônico nº 012/2026",
+      "objeto": "Contratação de empresa especializada em desenvolvimento, manutenção e sustentação de sistemas, na modalidade de fábrica de software",
+      "perfis": [
+        {
+          "cargo": "Gerente de Projetos",
+          "quantidade": 1,
+          "formacao": [
+            {
+              "nivel_minimo": "graduacao",
+              "areas": [
+                "Tecnologia da Informação",
+                "Ciência da Computação",
+                "Sistemas de Informação",
+                "Engenharia de Software",
+                "Análise e Desenvolvimento de Sistemas"
+              ],
+              "obrigatorio": true,
+              "peso": 3,
+              "texto_original": "diploma de graduação de nível superior em qualquer área de Tecnologia da Informação, como Ciência da Computação, Sistemas de Informação, Engenharia de Software ou Análise e Desenvolvimento de Sistemas. Exigido."
+            }
+          ],
+          "experiencias": [
+            {
+              "area": "gestão de projetos de tecnologia da informação",
+              "anos_minimos": 5,
+              "obrigatorio": true,
+              "peso": 3,
+              "texto_original": "Experiência mínima de 5 (cinco) anos em gestão de projetos de tecnologia da informação. Exigido."
+            }
+          ],
+          "certificacoes": [
+            {
+              "nome": "PMP",
+              "alternativas": [
+                "Project Management Professional"
+              ],
+              "obrigatorio": true,
+              "peso": 3,
+              "texto_original": "Certificação PMP (Project Management Professional) emitida pelo PMI. Exigido."
+            },
+            {
+              "nome": "Professional Scrum Master",
+              "alternativas": [
+                "PSM",
+                "Certified ScrumMaster",
+                "CSM"
+              ],
+              "obrigatorio": false,
+              "peso": 2,
+              "texto_original": "Certificação em metodologias ágeis, como Professional Scrum Master (PSM) ou Certified ScrumMaster (CSM). Desejável, vale 2 pontos."
+            }
+          ],
+          "competencias": [
+            {
+              "nome": "Jira",
+              "alternativas": [
+                "MS Project"
+              ],
+              "obrigatorio": false,
+              "peso": 1,
+              "texto_original": "Conhecimento em ferramentas de gestão como Jira ou MS Project. Desejável, vale 1 ponto."
+            }
+          ]
+        },
+        {
+          "cargo": "Analista de Sistemas Sênior",
+          "quantidade": 2,
+          "formacao": [
+            {
+              "nivel_minimo": "graduacao",
+              "areas": [
+                "Ciência da Computação",
+                "Sistemas de Informação",
+                "Engenharia de Software",
+                "Análise e Desenvolvimento de Sistemas"
+              ],
+              "obrigatorio": true,
+              "peso": 3,
+              "texto_original": "diploma de graduação em Ciência da Computação, Sistemas de Informação, Engenharia de Software ou Análise e Desenvolvimento de Sistemas. Exigido."
+            }
+          ],
+          "experiencias": [
+            {
+              "area": "desenvolvimento de sistemas",
+              "anos_minimos": 6,
+              "obrigatorio": true,
+              "peso": 3,
+              "texto_original": "Experiência mínima de 6 (seis) anos em desenvolvimento de sistemas. Exigido."
+            }
+          ],
+          "certificacoes": [
+            {
+              "nome": "ITIL Foundation",
+              "alternativas": [],
+              "obrigatorio": false,
+              "peso": 1,
+              "texto_original": "Certificação ITIL Foundation. Desejável, vale 1 ponto."
+            }
+          ],
+          "competencias": [
+            {
+              "nome": "Oracle",
+              "obrigatorio": true,
+              "peso": 3,
+              "texto_original": "Conhecimento em banco de dados Oracle e linguagem PL/SQL. Exigido.",
+              "alternativas": []
+            },
+            {
+              "nome": "PL/SQL",
+              "obrigatorio": true,
+              "peso": 3,
+              "texto_original": "Conhecimento em banco de dados Oracle e linguagem PL/SQL. Exigido.",
+              "alternativas": []
+            },
+            {
+              "nome": "Java",
+              "obrigatorio": false,
+              "peso": 2,
+              "texto_original": "Conhecimento em Java. Desejável, vale 2 pontos.",
+              "alternativas": []
+            },
+            {
+              "nome": "APIs REST",
+              "obrigatorio": false,
+              "peso": 1,
+              "texto_original": "Conhecimento em integração de sistemas por APIs REST. Desejável, vale 1 ponto.",
+              "alternativas": []
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "cv:8288febfb83cb98ba19e890e78b18b743e7f0624536c8b43e726db5e855266c6": {
+    "tipo": "cv",
+    "arquivo": "cv_mariana_duarte.pdf",
+    "valor": {
+      "nome": "Mariana Duarte Lima",
+      "formacoes": [
+        {
+          "nivel": "graduacao",
+          "curso": "Ciência da Computação",
+          "instituicao": "Universidade Estadual do Vale",
+          "concluida": true,
+          "ano_conclusao": 2011
+        },
+        {
+          "nivel": "pos_graduacao",
+          "curso": "MBA em Gestão de Projetos",
+          "instituicao": "Faculdade Horizonte",
+          "concluida": true,
+          "ano_conclusao": 2016
+        }
+      ],
+      "experiencias": [
+        {
+          "cargo": "Desenvolvedora .NET",
+          "empresa": "Codex Softwares",
+          "inicio": "2012-02-01",
+          "fim": "2016-12-01",
+          "descricao": "Desenvolvimento de sistemas web em C# e SQL Server.",
+          "tecnologias": [
+            "C#",
+            ".NET",
+            "SQL Server"
+          ]
+        },
+        {
+          "cargo": "Gerente de Projetos de TI",
+          "empresa": "Nexo Sistemas",
+          "inicio": "2017-01-01",
+          "fim": null,
+          "descricao": "Gestão de projetos de tecnologia da informação para prefeituras, com equipes de até 15 pessoas, cronograma, riscos e orçamento.",
+          "tecnologias": [
+            "Jira",
+            "MS Project"
+          ]
+        }
+      ],
+      "certificacoes": [
+        {
+          "nome": "PMP - Project Management Professional",
+          "emissor": "PMI",
+          "ano": 2019
+        },
+        {
+          "nome": "Professional Scrum Master I (PSM I)",
+          "emissor": "Scrum.org",
+          "ano": 2021
+        }
+      ],
+      "competencias": [
+        "Gestão de riscos",
+        "Scrum",
+        "Jira",
+        "MS Project"
+      ]
+    }
+  },
+  "cv:dc2de85f9b73faf2ae8ae7c968e5ab114b59e0f70ea41ea1d0951ed11a83c6d9": {
+    "tipo": "cv",
+    "arquivo": "cv_rafael_teixeira.pdf",
+    "valor": {
+      "nome": "Rafael Teixeira Nunes",
+      "formacoes": [
+        {
+          "nivel": "graduacao",
+          "curso": "Administração de Empresas",
+          "instituicao": "Faculdade Central",
+          "concluida": true,
+          "ano_conclusao": 2012
+        },
+        {
+          "nivel": "pos_graduacao",
+          "curso": "MBA em Gerenciamento de Projetos",
+          "instituicao": "Escola de Negócios Atlântica",
+          "concluida": true,
+          "ano_conclusao": 2015
+        }
+      ],
+      "experiencias": [
+        {
+          "cargo": "Coordenador de Projetos de TI",
+          "empresa": "Integra ERP",
+          "inicio": "2015-03-01",
+          "fim": null,
+          "descricao": "Gestão de projetos de tecnologia da informação na implantação de ERP em clientes de médio porte.",
+          "tecnologias": [
+            "MS Project"
+          ]
+        }
+      ],
+      "certificacoes": [
+        {
+          "nome": "PMP",
+          "emissor": "PMI",
+          "ano": 2017
+        }
+      ],
+      "competencias": [
+        "MS Project",
+        "Gestão de contratos"
+      ]
+    }
+  },
+  "cv:9b057cbdd9b06c62115ee8d924f19e19405eb90ac411bac8b0f0b4cda906c488": {
+    "tipo": "cv",
+    "arquivo": "cv_camila_rocha.pdf",
+    "valor": {
+      "nome": "Camila Rocha Prado",
+      "formacoes": [
+        {
+          "nivel": "graduacao",
+          "curso": "Sistemas de Informação",
+          "instituicao": "Centro Universitário Paulista",
+          "concluida": true,
+          "ano_conclusao": 2014
+        }
+      ],
+      "experiencias": [
+        {
+          "cargo": "Analista de Requisitos",
+          "empresa": "Prisma Consultoria",
+          "inicio": "2014-06-01",
+          "fim": "2018-12-01",
+          "descricao": "Levantamento de requisitos e modelagem de processos.",
+          "tecnologias": [
+            "BPMN"
+          ]
+        },
+        {
+          "cargo": "Gerente de Projetos de TI",
+          "empresa": "Prisma Consultoria",
+          "inicio": "2019-01-01",
+          "fim": null,
+          "descricao": "Gestão de projetos de tecnologia da informação com métodos ágeis.",
+          "tecnologias": [
+            "Jira"
+          ]
+        }
+      ],
+      "certificacoes": [
+        {
+          "nome": "CAPM - Certified Associate in Project Management",
+          "emissor": "PMI",
+          "ano": 2018
+        },
+        {
+          "nome": "Certified ScrumMaster (CSM)",
+          "emissor": "Scrum Alliance",
+          "ano": 2020
+        }
+      ],
+      "competencias": [
+        "Jira",
+        "Scrum",
+        "Kanban"
+      ]
+    }
+  },
+  "cv:4e9155d6815eecd0a99630fac2a5873ece3836d69ce45c8609909b2ba77aebf8": {
+    "tipo": "cv",
+    "arquivo": "cv_bruno_sales.pdf",
+    "valor": {
+      "nome": "Bruno Henrique Sales",
+      "formacoes": [
+        {
+          "nivel": "graduacao",
+          "curso": "Engenharia de Software",
+          "instituicao": "Universidade Federal do Interior",
+          "concluida": true,
+          "ano_conclusao": 2014
+        }
+      ],
+      "experiencias": [
+        {
+          "cargo": "Desenvolvedor Java",
+          "empresa": "GovTec Sistemas",
+          "inicio": "2015-01-01",
+          "fim": "2019-06-01",
+          "descricao": "Desenvolvimento de sistemas de arrecadação municipal com Java, Oracle e PL/SQL.",
+          "tecnologias": [
+            "Java",
+            "Oracle",
+            "PL/SQL"
+          ]
+        },
+        {
+          "cargo": "Analista de Sistemas",
+          "empresa": "Nexo Sistemas",
+          "inicio": "2019-07-01",
+          "fim": null,
+          "descricao": "Desenvolvimento de sistemas e integração por APIs REST entre os módulos de RH e financeiro.",
+          "tecnologias": [
+            "Java",
+            "Spring Boot",
+            "APIs REST",
+            "Oracle"
+          ]
+        }
+      ],
+      "certificacoes": [
+        {
+          "nome": "ITIL 4 Foundation",
+          "emissor": "AXELOS",
+          "ano": 2022
+        }
+      ],
+      "competencias": [
+        "Java",
+        "Oracle",
+        "PL/SQL",
+        "APIs REST",
+        "Git"
+      ]
+    }
+  },
+  "cv:6eb6db45b41e970229c0367ddbe08bee099c98284bad73cc519cc31b12e63343": {
+    "tipo": "cv",
+    "arquivo": "cv_juliana_matos.pdf",
+    "valor": {
+      "nome": "Juliana Matos Ferreira",
+      "formacoes": [
+        {
+          "nivel": "graduacao",
+          "curso": "Tecnologia em Análise e Desenvolvimento de Sistemas",
+          "instituicao": "Fatec Vale Verde",
+          "concluida": true,
+          "ano_conclusao": 2015
+        }
+      ],
+      "experiencias": [
+        {
+          "cargo": "Desenvolvedora PHP",
+          "empresa": "Web Ágil",
+          "inicio": "2016-02-01",
+          "fim": "2020-01-01",
+          "descricao": "Desenvolvimento de sistemas web em PHP com MySQL.",
+          "tecnologias": [
+            "PHP",
+            "MySQL"
+          ]
+        },
+        {
+          "cargo": "Analista de Sistemas",
+          "empresa": "Cooperativa Agro Norte",
+          "inicio": "2020-02-01",
+          "fim": null,
+          "descricao": "Desenvolvimento de sistemas internos com banco Oracle, rotinas em PL/SQL e APIs REST.",
+          "tecnologias": [
+            "Oracle",
+            "PL/SQL",
+            "APIs REST"
+          ]
+        }
+      ],
+      "certificacoes": [],
+      "competencias": [
+        "Oracle",
+        "PL/SQL",
+        "PHP"
+      ]
+    }
+  },
+  "cv:0ace7bea101a5b28abfa958ba90d8d8bc484792a2e8107aecf125dc274fe3895": {
+    "tipo": "cv",
+    "arquivo": "cv_diego_carvalho.pdf",
+    "valor": {
+      "nome": "Diego Carvalho Pinto",
+      "formacoes": [
+        {
+          "nivel": "graduacao",
+          "curso": "Ciência da Computação",
+          "instituicao": "Universidade Estadual do Vale",
+          "concluida": false,
+          "ano_conclusao": null
+        },
+        {
+          "nivel": "tecnico",
+          "curso": "Técnico em Informática",
+          "instituicao": "ETEC Vale Verde",
+          "concluida": true,
+          "ano_conclusao": 2012
+        }
+      ],
+      "experiencias": [
+        {
+          "cargo": "Desenvolvedor de Sistemas",
+          "empresa": "Banco Regional do Vale",
+          "inicio": "2014-03-01",
+          "fim": null,
+          "descricao": "Desenvolvimento de sistemas bancários em Java com Oracle e PL/SQL.",
+          "tecnologias": [
+            "Java",
+            "Oracle",
+            "PL/SQL"
+          ]
+        }
+      ],
+      "certificacoes": [],
+      "competencias": [
+        "Java",
+        "Oracle",
+        "PL/SQL"
+      ]
+    }
+  },
+  "cv:6fe9ceeabe42fd085ece3a1851f02f316b3ef0800fa53ecab2940b675d5d158c": {
+    "tipo": "cv",
+    "arquivo": "cv_patricia_gomes.pdf",
+    "valor": {
+      "nome": "Patrícia Gomes Alencar",
+      "formacoes": [
+        {
+          "nivel": "graduacao",
+          "curso": "Sistemas de Informação",
+          "instituicao": "Centro Universitário Paulista",
+          "concluida": true,
+          "ano_conclusao": 2019
+        }
+      ],
+      "experiencias": [
+        {
+          "cargo": "Desenvolvedora de Sistemas",
+          "empresa": "Soluções Lumen",
+          "inicio": "2020-01-01",
+          "fim": "2023-12-01",
+          "descricao": "Desenvolvimento de sistemas em Java com Oracle e PL/SQL.",
+          "tecnologias": [
+            "Java",
+            "Oracle",
+            "PL/SQL"
+          ]
+        },
+        {
+          "cargo": "Desenvolvedora de Sistemas (freelancer)",
+          "empresa": null,
+          "inicio": "2021-01-01",
+          "fim": "2023-06-01",
+          "descricao": "Desenvolvimento de sistemas sob demanda para pequenas empresas.",
+          "tecnologias": [
+            "Java"
+          ]
+        },
+        {
+          "cargo": "Analista de Sistemas",
+          "empresa": "Fintech Orbe",
+          "inicio": "2025-01-01",
+          "fim": null,
+          "descricao": "Desenvolvimento de sistemas e integrações por APIs REST.",
+          "tecnologias": [
+            "Java",
+            "APIs REST",
+            "Oracle"
+          ]
+        }
+      ],
+      "certificacoes": [],
+      "competencias": [
+        "Java",
+        "Oracle",
+        "PL/SQL",
+        "APIs REST"
+      ]
+    }
+  },
+  "cv:747d98cb8f2d14a5f0c32f5f41d471846b1b48df816da430ea9269e4b452acf3": {
+    "tipo": "cv",
+    "arquivo": "cv_thiago_moreira.pdf",
+    "valor": {
+      "nome": "Thiago Moreira Campos",
+      "formacoes": [
+        {
+          "nivel": "graduacao",
+          "curso": "Gastronomia",
+          "instituicao": "Faculdade Sabores",
+          "concluida": true,
+          "ano_conclusao": 2010
+        }
+      ],
+      "experiencias": [
+        {
+          "cargo": "Gerente de Restaurante",
+          "empresa": "Cantina Bella Vista",
+          "inicio": "2011-05-01",
+          "fim": null,
+          "descricao": "Gestão de equipe de salão e cozinha, controle de estoque e atendimento ao cliente.",
+          "tecnologias": []
+        }
+      ],
+      "certificacoes": [],
+      "competencias": [
+        "Gestão de equipes",
+        "Excel"
+      ]
+    }
+  }
+}

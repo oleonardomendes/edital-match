@@ -1,0 +1,29 @@
+{
+  "data_referencia": "2026-10-01",
+  "observacao": "Decisões feitas por leitura humana do edital e de cada currículo, antes de rodar o motor.",
+  "cargos": {
+    "Gerente de Projetos": {
+      "aptos_em_ordem": ["Mariana Duarte Lima"],
+      "inaptos": {
+        "Rafael Teixeira Nunes": ["formacao"],
+        "Camila Rocha Prado": ["certificacao"],
+        "Bruno Henrique Sales": ["experiencia", "certificacao"],
+        "Juliana Matos Ferreira": ["experiencia", "certificacao"],
+        "Diego Carvalho Pinto": ["formacao", "experiencia", "certificacao"],
+        "Patrícia Gomes Alencar": ["experiencia", "certificacao"],
+        "Thiago Moreira Campos": ["formacao", "experiencia", "certificacao"]
+      }
+    },
+    "Analista de Sistemas Sênior": {
+      "aptos_em_ordem": ["Bruno Henrique Sales", "Juliana Matos Ferreira"],
+      "inaptos": {
+        "Mariana Duarte Lima": ["experiencia", "competencia"],
+        "Rafael Teixeira Nunes": ["formacao", "experiencia", "competencia"],
+        "Camila Rocha Prado": ["experiencia", "competencia"],
+        "Diego Carvalho Pinto": ["formacao"],
+        "Patrícia Gomes Alencar": ["experiencia"],
+        "Thiago Moreira Campos": ["formacao", "experiencia", "competencia"]
+      }
+    }
+  }
+}
