@@ -1,0 +1,26 @@
+PROMPT_EDITAL = """Você recebe o texto de um edital de licitação ou termo de referência.
+Extraia os perfis profissionais exigidos da equipe técnica e os requisitos de cada perfil.
+
+Regras:
+- Use apenas o que está escrito no edital. Não invente requisitos.
+- Um requisito é obrigatório quando o edital usa termos como "exigido", "obrigatório",
+  "mínimo", "deverá possuir" ou o coloca como condição de habilitação. Requisitos que só
+  somam pontos ou aparecem como "desejável" têm obrigatorio=false.
+- Pesos: requisitos obrigatórios têm peso 3. Requisitos desejáveis usam os pontos que o
+  edital atribui; sem pontuação definida, peso 1.
+- Converta tempo de experiência para anos (ex.: 24 meses = 2).
+- Em texto_original, copie o trecho do edital que gerou o requisito.
+- Separe certificações (PMP, ITIL, Scrum) de competências técnicas (Java, Oracle, SQL).
+"""
+
+PROMPT_CV = """Você recebe o texto de um currículo. Extraia os dados estruturados do candidato.
+
+Regras:
+- Use apenas o que está escrito. Não deduza certificações nem competências.
+- Datas no formato AAAA-MM-DD. Quando só houver mês e ano, use o dia 01. Quando só houver
+  o ano, use 01 de janeiro. Deixe fim vazio quando for o emprego atual.
+- Em tecnologias, liste as ferramentas e linguagens citadas em cada experiência.
+- Em nivel, use: medio, tecnico, graduacao, pos_graduacao, mestrado ou doutorado.
+  MBA e especialização contam como pos_graduacao. Tecnólogo conta como graduacao.
+- Marque concluida=false para cursos em andamento ou trancados.
+"""
