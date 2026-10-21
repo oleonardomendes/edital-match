@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edital Match</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root{
+  --bg:#f4f5f2; --paper:#fff; --ink:#1c2430; --muted:#5d6672; --line:#dde1dc;
+  --accent:#1f4e79; --accent-soft:#e6eef6;
+  --ok:#1d7a4e; --ok-soft:#e3f3ea; --warn:#9a6a00; --warn-soft:#fbf0d6; --no:#b23a2b; --no-soft:#f8e4e1;
+  --sans:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans)}
+header{background:var(--ink);color:#fff;padding:20px max(16px,calc((100% - 1040px)/2))}
+header h1{margin:0;font-size:1.4rem;letter-spacing:-.01em}
+header p{margin:4px 0 0;color:#c4cbd4;font-size:.92rem}
+main{max-width:1040px;margin:0 auto;padding:24px 16px 64px;display:flex;flex-direction:column;gap:20px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:20px}
+.step{display:flex;align-items:baseline;gap:10px;margin:0 0 12px}
+.step span{font:500 .78rem var(--mono);color:var(--accent);background:var(--accent-soft);padding:2px 8px;border-radius:4px}
+.step h2{margin:0;font-size:1.08rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button,.file{font:inherit;font-size:.92rem;font-weight:600;border-radius:6px;padding:8px 14px;cursor:pointer;border:1px solid var(--accent)}
+button{background:var(--accent);color:#fff}
+button.sec,.file{background:var(--paper);color:var(--accent)}
+button:disabled{opacity:.5;cursor:default}
+.file input{display:none}
+.hint{color:var(--muted);font-size:.88rem;margin:8px 0 0}
+.err{color:var(--no);font-size:.9rem;margin:8px 0 0}
+.perfis{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:14px}
+.perfil{border:1px solid var(--line);border-radius:6px;padding:14px}
+.perfil h3{margin:0 0 8px;font-size:1rem}
+.req{display:flex;gap:8px;font-size:.88rem;padding:3px 0}
+.req b{font:500 .7rem var(--mono);text-transform:uppercase;letter-spacing:.04em;padding:1px 6px;border-radius:3px;height:fit-content;white-space:nowrap}
+.req b.obr{background:var(--no-soft);color:var(--no)} .req b.des{background:var(--accent-soft);color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.chip{font-size:.85rem;border:1px solid var(--line);border-radius:999px;padding:2px 10px;background:var(--bg)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px;flex-wrap:wrap}
+.tab{background:none;color:var(--muted);border:0;border-bottom:2px solid transparent;border-radius:0;padding:8px 12px}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th{text-align:left;font-weight:600;color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;padding:8px;border-bottom:1px solid var(--line)}
+td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+tr.cand{cursor:pointer} tr.cand:hover td{background:#fafbf9}
+.score{font:500 .95rem var(--mono);font-variant-numeric:tabular-nums}
+.bar{height:5px;background:var(--line);border-radius:3px;width:90px;margin-top:4px}.bar i{display:block;height:100%;border-radius:3px;background:var(--accent)}
+.st{font-size:.78rem;font-weight:600;padding:2px 8px;border-radius:4px;white-space:nowrap}
+.st.apto,.st.atende{background:var(--ok-soft);color:var(--ok)} .st.inapto,.st.nao_atende{background:var(--no-soft);color:var(--no)} .st.parcial{background:var(--warn-soft);color:var(--warn)}
+.detail td{background:#fafbf9;padding:0 8px 14px}
+.crit{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;padding:10px 0;border-top:1px dashed var(--line);font-size:.88rem}
+.crit:first-child{border-top:0}
+.crit .ev{color:var(--muted)}
+.search{display:flex;gap:8px;margin-top:4px}
+.search input{flex:1;min-width:0;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px}
+.wrap{overflow-x:auto}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Edital Match</h1>
+  <p>Cruza os requisitos da equipe técnica de um edital com currículos e mostra quem atende, com a evidência de cada critério.</p>
+</header>
+<main>
+  <section class="card">
+    <div class="step"><span>1</span><h2>Edital</h2></div>
+    <div class="row">
+      <label class="file">Enviar edital (PDF, DOCX ou TXT)<input type="file" id="f-edital" accept=".pdf,.docx,.txt"></label>
+      <button class="sec" id="b-exemplo">Usar o exemplo fictício</button>
+    </div>
+    <p class="hint">O exemplo carrega um edital de prefeitura fictícia e 8 currículos inventados, sem precisar de chave de IA.</p>
+    <p class="err" id="e-edital" hidden></p>
+    <div class="perfis" id="perfis"></div>
+  </section>
+
+  <section class="card">
+    <div class="step"><span>2</span><h2>Currículos</h2></div>
+    <div class="row"><label class="file">Enviar currículos<input type="file" id="f-cvs" accept=".pdf,.docx,.txt" multiple></label></div>
+    <p class="err" id="e-cvs" hidden></p>
+    <div class="chips" id="cands"></div>
+    <div class="search"><input id="q" placeholder="Buscar no banco de currículos: ex. experiência com Oracle e PL/SQL"><button class="sec" id="b-busca">Buscar</button></div>
+    <div class="chips" id="busca"></div>
+  </section>
+
+  <section class="card">
+    <div class="step"><span>3</span><h2>Ranking por cargo</h2></div>
+    <div class="tabs" id="tabs"></div>
+    <div class="wrap" id="ranking"><p class="hint">Carregue um edital e currículos para ver o ranking.</p></div>
+  </section>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let edital = null, cargoAtivo = null;
+const NIVEL = {medio:"ensino médio",tecnico:"técnico",graduacao:"graduação",pos_graduacao:"pós-graduação",mestrado:"mestrado",doutorado:"doutorado"};
+
+async function api(url, opts){
+  const r = await fetch(url, opts);
+  if(!r.ok){ let m = r.statusText; try{ m = (await r.json()).detail || m }catch{}; throw new Error(typeof m === "string" ? m : JSON.stringify(m)); }
+  return r.status === 204 ? null : r.json();
+}
+function erro(id, msg){ const el = $(id); el.textContent = msg || ""; el.hidden = !msg; }
+
+function renderEdital(){
+  if(!edital){ $("#perfis").innerHTML = ""; return; }
+  const req = edital.requisitos;
+  $("#perfis").innerHTML = req.perfis.map(p => {
+    const itens = [
+      ...p.formacao.map(f => [f.obrigatorio, `Formação: ${NIVEL[f.nivel_minimo]}${f.areas.length ? " em " + f.areas.join(", ") : ""}`]),
+      ...p.experiencias.map(x => [x.obrigatorio, `${x.anos_minimos} anos em ${x.area}`]),
+      ...p.certificacoes.map(c => [c.obrigatorio, `Certificação ${c.nome}`]),
+      ...p.competencias.map(c => [c.obrigatorio, [c.nome, ...c.alternativas].join(" ou ")]),
+    ];
+    return `<div class="perfil"><h3>${esc(p.cargo)}${p.quantidade ? ` <small style="color:var(--muted);font-weight:400">· ${p.quantidade} vaga(s)</small>` : ""}</h3>` +
+      itens.map(([o,t]) => `<div class="req"><b class="${o?"obr":"des"}">${o?"exigido":"desejável"}</b><span>${esc(t)}</span></div>`).join("") + `</div>`;
+  }).join("");
+  $("#tabs").innerHTML = req.perfis.map(p => `<button class="tab ${p.cargo===cargoAtivo?"on":""}" data-cargo="${esc(p.cargo)}">${esc(p.cargo)}</button>`).join("");
+}
+
+async function carregarCandidatos(){
+  const cs = await api("/api/candidatos");
+  $("#cands").innerHTML = cs.length ? cs.map(c => `<span class="chip" title="${esc(c.nome_arquivo)}">${esc(c.nome)}</span>`).join("") : `<span class="hint">Nenhum currículo ainda.</span>`;
+}
+
+async function carregarRanking(){
+  if(!edital){ return; }
+  cargoAtivo = cargoAtivo || edital.requisitos.perfis[0].cargo;
+  renderEdital();
+  const [rk] = await api(`/api/editais/${edital.id}/ranking?cargo=${encodeURIComponent(cargoAtivo)}`);
+  if(!rk.resultados.length){ $("#ranking").innerHTML = `<p class="hint">Envie currículos para gerar o ranking.</p>`; return; }
+  $("#ranking").innerHTML = `<table><thead><tr><th>#</th><th>Candidato</th><th>Situação</th><th>Score</th><th>Resumo</th></tr></thead><tbody>` +
+    rk.resultados.map((r,i) => `<tr class="cand" data-i="${i}" tabindex="0"><td>${i+1}</td><td><b>${esc(r.candidato)}</b></td>
+      <td><span class="st ${r.elegivel?"apto":"inapto"}">${r.elegivel?"Apto":"Inapto"}</span></td>
+      <td><div class="score">${r.score.toFixed(1)}</div><div class="bar"><i style="width:${r.score}%"></i></div></td><td>${esc(r.resumo)}</td></tr>
+      <tr class="detail" id="d${i}" hidden><td></td><td colspan="4">${r.criterios.map(c => `<div class="crit">
+        <div><span class="st ${c.status}">${{atende:"Atende",parcial:"Parcial",nao_atende:"Não atende"}[c.status]}</span></div>
+        <div><b>${esc(c.requisito)}</b>${c.obrigatorio?" · exigido":""}<div class="ev">${esc(c.evidencia)}</div><div>${esc(c.justificativa)}</div></div></div>`).join("")}</td></tr>`).join("") +
+    `</tbody></table><p class="hint">Clique em um candidato para ver a evidência de cada critério.</p>`;
+}
+
+$("#ranking").addEventListener("click", e => { const tr = e.target.closest("tr.cand"); if(tr){ const d = $("#d"+tr.dataset.i); d.hidden = !d.hidden; } });
+$("#ranking").addEventListener("keydown", e => { if(e.key==="Enter"){ const tr = e.target.closest("tr.cand"); if(tr) tr.click(); } });
+$("#tabs").addEventListener("click", e => { const b = e.target.closest(".tab"); if(b){ cargoAtivo = b.dataset.cargo; carregarRanking(); } });
+
+$("#f-edital").addEventListener("change", async e => {
+  const f = e.target.files[0]; if(!f) return; erro("#e-edital");
+  const fd = new FormData(); fd.append("arquivo", f);
+  $("#perfis").innerHTML = `<p class="hint">Lendo o edital...</p>`;
+  try{ edital = await api("/api/editais", {method:"POST", body:fd}); cargoAtivo = null; await carregarRanking(); }
+  catch(x){ erro("#e-edital", x.message); renderEdital(); }
+  e.target.value = "";
+});
+$("#f-cvs").addEventListener("change", async e => {
+  if(!e.target.files.length) return; erro("#e-cvs");
+  const fd = new FormData(); [...e.target.files].forEach(f => fd.append("arquivos", f));
+  try{
+    const r = await api("/api/candidatos", {method:"POST", body:fd});
+    if(r.falhas.length) erro("#e-cvs", r.falhas.map(f => `${f.nome_arquivo}: ${f.erro}`).join(" | "));
+    await carregarCandidatos(); await carregarRanking();
+  }catch(x){ erro("#e-cvs", x.message); }
+  e.target.value = "";
+});
+$("#b-exemplo").addEventListener("click", async e => {
+  e.target.disabled = true; erro("#e-edital");
+  try{ const r = await api("/api/exemplo", {method:"POST"}); edital = await api(`/api/editais/${r.edital_id}`); cargoAtivo = null; await carregarCandidatos(); await carregarRanking(); }
+  catch(x){ erro("#e-edital", x.message); }
+  e.target.disabled = false;
+});
+async function buscar(){
+  const q = $("#q").value.trim(); if(q.length < 3) return;
+  const r = await api(`/api/candidatos/busca?q=${encodeURIComponent(q)}&limite=5`);
+  $("#busca").innerHTML = r.map(x => `<span class="chip">${esc(x.nome)} · ${(x.similaridade*100).toFixed(0)}%</span>`).join("") || `<span class="hint">Nada encontrado.</span>`;
+}
+$("#b-busca").addEventListener("click", buscar);
+$("#q").addEventListener("keydown", e => { if(e.key==="Enter") buscar(); });
+
+(async () => {
+  await carregarCandidatos();
+  const eds = await api("/api/editais");
+  if(eds.length){ edital = eds[0]; await carregarRanking(); }
+})();
+</script>
+</body>
+</html>

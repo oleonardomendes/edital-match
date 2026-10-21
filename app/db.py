@@ -1,0 +1,93 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, create_engine, select, text
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
+
+from app.config import get_settings
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+def _agora() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+class Edital(Base):
+    __tablename__ = "editais"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    nome_arquivo: Mapped[str] = mapped_column(String(255))
+    texto: Mapped[str] = mapped_column(Text)
+    requisitos: Mapped[dict] = mapped_column(JSONB)
+    revisado: Mapped[bool] = mapped_column(default=False)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_agora)
+
+
+class Candidato(Base):
+    __tablename__ = "candidatos"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    nome_arquivo: Mapped[str] = mapped_column(String(255))
+    nome: Mapped[str] = mapped_column(String(255))
+    texto: Mapped[str] = mapped_column(Text)
+    perfil: Mapped[dict] = mapped_column(JSONB)
+    embedding = mapped_column(Vector(), nullable=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_agora)
+
+
+class Extracao(Base):
+    """Cache de extrações do LLM, indexado pelo hash do texto."""
+
+    __tablename__ = "extracoes"
+
+    chave: Mapped[str] = mapped_column(String(80), primary_key=True)
+    tipo: Mapped[str] = mapped_column(String(20))
+    valor: Mapped[str] = mapped_column(Text)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_agora)
+
+
+class DbCache:
+    def __init__(self, session: Session) -> None:
+        self.s = session
+
+    def get(self, chave: str) -> str | None:
+        row = self.s.get(Extracao, chave)
+        return row.valor if row else None
+
+    def set(self, chave: str, tipo: str, valor: str) -> None:
+        self.s.merge(Extracao(chave=chave, tipo=tipo, valor=valor))
+        self.s.commit()
+
+
+_engine = None
+_SessionLocal = None
+
+
+def engine():
+    global _engine, _SessionLocal
+    if _engine is None:
+        _engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+        _SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False)
+    return _engine
+
+
+def criar_tabelas() -> None:
+    eng = engine()
+    with eng.begin() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+    Base.metadata.create_all(eng)
+
+
+def get_session():
+    engine()
+    with _SessionLocal() as s:
+        yield s
+
+
+__all__ = ["Base", "Edital", "Candidato", "Extracao", "DbCache", "criar_tabelas", "get_session", "select"]
