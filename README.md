@@ -2,6 +2,8 @@
 
 Cruza os requisitos da equipe técnica de um edital de licitação com uma base de currículos e gera, para cada cargo, um ranking de profissionais com **score, situação (apto ou inapto) e a evidência de cada critério**.
 
+🔗 **Demo:** https://edital-match.onrender.com (clique em **Usar o exemplo fictício**). Está no plano gratuito do Render: depois de um tempo sem acesso, a primeira abertura leva cerca de 1 minuto.
+
 ![Ranking do cargo Analista de Sistemas Sênior](docs/ranking.png)
 
 ## O problema
