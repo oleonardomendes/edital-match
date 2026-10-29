@@ -143,6 +143,8 @@ def revisar_requisitos(edital_id: int, requisitos: RequisitosEdital, session: Se
     e = session.get(Edital, edital_id)
     if not e:
         raise HTTPException(404, "Edital não encontrado.")
+    if not requisitos.perfis:
+        raise HTTPException(422, "O edital precisa ter pelo menos um cargo.")
     e.requisitos = requisitos.model_dump(mode="json")
     e.revisado = True
     session.commit()

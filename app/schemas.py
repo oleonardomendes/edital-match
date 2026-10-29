@@ -35,15 +35,15 @@ class RequisitoFormacao(BaseModel):
         description="Áreas aceitas. Lista vazia aceita qualquer área.",
     )
     obrigatorio: bool = True
-    peso: float = 1.0
+    peso: float = Field(1.0, ge=0)
     texto_original: str = ""
 
 
 class RequisitoExperiencia(BaseModel):
     area: str = Field(description="Atividade ou área em que a experiência é exigida")
-    anos_minimos: float
+    anos_minimos: float = Field(ge=0)
     obrigatorio: bool = True
-    peso: float = 1.0
+    peso: float = Field(1.0, ge=0)
     texto_original: str = ""
 
 
@@ -53,7 +53,7 @@ class RequisitoCertificacao(BaseModel):
         default_factory=list, description="Certificações equivalentes aceitas"
     )
     obrigatorio: bool = False
-    peso: float = 1.0
+    peso: float = Field(1.0, ge=0)
     texto_original: str = ""
 
 
@@ -63,7 +63,7 @@ class RequisitoCompetencia(BaseModel):
         default_factory=list, description="Opções equivalentes quando o edital diz 'X ou Y'"
     )
     obrigatorio: bool = False
-    peso: float = 1.0
+    peso: float = Field(1.0, ge=0)
     texto_original: str = ""
 
 

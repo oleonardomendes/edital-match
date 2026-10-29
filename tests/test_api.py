@@ -95,3 +95,25 @@ def test_formato_invalido(client):
     r = client.post("/api/editais", files=[("arquivo", ("edital.xlsx", b"x" * 100, "application/octet-stream"))])
     assert r.status_code == 422
     assert "Formato não suportado" in r.json()["detail"]
+
+
+def test_requisitos_de_cada_edital_mudam_o_resultado(client):
+    """Se este edital não exigir PMP, a Camila (que tem CAPM) passa a ser apta."""
+    edital = client.get("/api/editais").json()[-1]
+    ranking = lambda: client.get(f"/api/editais/{edital['id']}/ranking", params={"cargo": "Gerente de Projetos"}).json()[0]["resultados"]
+    apta = lambda: next(r for r in ranking() if r["candidato"] == "Camila Rocha Prado")["elegivel"]
+    assert apta() is False
+
+    req = edital["requisitos"]
+    pmp = next(c for c in req["perfis"][0]["certificacoes"] if c["nome"] == "PMP")
+    pmp["obrigatorio"], pmp["peso"] = False, 2
+    assert client.put(f"/api/editais/{edital['id']}/requisitos", json=req).status_code == 200
+    assert apta() is True
+
+
+def test_revisao_rejeita_peso_negativo(client):
+    edital = client.get("/api/editais").json()[-1]
+    req = edital["requisitos"]
+    req["perfis"][0]["competencias"][0]["peso"] = -1
+    r = client.put(f"/api/editais/{edital['id']}/requisitos", json=req)
+    assert r.status_code == 422

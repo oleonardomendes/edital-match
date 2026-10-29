@@ -23,6 +23,10 @@ Currículos ────► LLM extrai formação, experiências,           ▼
                         └──► embedding no pgvector ──► busca semântica no banco de currículos
 ```
 
+**Cada edital tem suas regras, e uma pessoa confirma antes do ranking.** A IA extrai os requisitos e mostra, ao lado de cada um, o trecho do edital de onde ele saiu. Quem usa confere, muda o que é exigido ou desejável, ajusta pesos, adiciona ou remove requisitos e salva. O ranking é recalculado na hora.
+
+![Revisão dos requisitos com o trecho do edital](docs/revisao.png)
+
 **A IA extrai, as regras decidem.** O LLM só transforma texto em dados estruturados (validados com Pydantic). A decisão de apto ou inapto e o score saem de um motor de regras determinístico. Em licitação, cada decisão precisa ser justificável: a mesma entrada sempre gera o mesmo resultado, e cada critério mostra o trecho do currículo que o comprova.
 
 O motor cuida dos detalhes que costumam derrubar uma habilitação:
@@ -101,7 +105,7 @@ pytest                              # testes de API rodam se TEST_DATABASE_URL e
 | Método | Rota | O que faz |
 |---|---|---|
 | POST | `/api/editais` | Envia o edital e devolve os perfis e requisitos extraídos |
-| PUT | `/api/editais/{id}/requisitos` | Corrige os requisitos extraídos antes de gerar o ranking |
+| PUT | `/api/editais/{id}/requisitos` | Salva a revisão dos requisitos (exigido ou desejável, pesos, itens) |
 | POST | `/api/candidatos` | Envia um ou mais currículos |
 | GET | `/api/editais/{id}/ranking?cargo=` | Ranking explicável por cargo |
 | GET | `/api/candidatos/busca?q=` | Busca semântica no banco de currículos (pgvector) |
