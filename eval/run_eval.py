@@ -119,6 +119,7 @@ def avaliar(modo: str, scorer: Scorer | None = None, verbose: bool = True, llm=N
     }
     if extracao:
         m["extracao"] = extracao
+        m["edital_extraido"] = edital.model_dump(mode="json")
     if verbose:
         print("\nResultado")
         for k in ("acuracia_apto_inapto", "acuracia_motivos_inaptidao", "ndcg_ordem_aptos", "decisoes_avaliadas"):

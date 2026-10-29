@@ -11,6 +11,12 @@ Regras:
 - Converta tempo de experiência para anos (ex.: 24 meses = 2).
 - Em texto_original, copie o trecho do edital que gerou o requisito.
 - Separe certificações (PMP, ITIL, Scrum) de competências técnicas (Java, Oracle, SQL).
+- Um requisito com "X e Y" exige as duas coisas: crie um requisito para X e outro para Y
+  (ex.: "Oracle e PL/SQL" vira duas competências). Um requisito com "X ou Y" aceita qualquer
+  uma: crie um só requisito com Y em alternativas.
+- Em formação, liste em areas todos os cursos citados e também a área geral, quando houver
+  (ex.: "qualquer área de TI, como Ciência da Computação ou Sistemas de Informação" vira
+  ["Tecnologia da Informação", "Ciência da Computação", "Sistemas de Informação"]).
 """
 
 PROMPT_CV = """Você recebe o texto de um currículo. Extraia os dados estruturados do candidato.
