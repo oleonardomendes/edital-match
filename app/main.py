@@ -95,7 +95,7 @@ def _processar_edital(nome: str, paginas: list[str], session: Session, extractor
         else:
             # Edital longo: primeiro a lista de cargos; os requisitos de cada cargo são
             # extraídos depois, cada um com os trechos recuperados para ele.
-            contexto = montar_contexto(session, e.id, embedder, limite, consultas=CONSULTAS_CARGOS)[0]
+            contexto = montar_contexto(session, e.id, embedder, limite, consultas=CONSULTAS_CARGOS, vizinhos=True)[0]
             lista = extractor.cargos(texto, contexto)
             requisitos = RequisitosEdital(
                 orgao=lista.orgao, numero=lista.numero, objeto=lista.objeto, regras_equipe=lista.regras_equipe,

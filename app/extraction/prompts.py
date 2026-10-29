@@ -26,7 +26,9 @@ Regras:
 """
 
 PROMPT_CARGOS = """Você recebe trechos de um edital de licitação ou termo de referência, marcados com [p. N · seção].
-Liste os perfis profissionais que o edital exige ou descreve para a equipe técnica.
+Liste TODOS os perfis profissionais que o edital exige ou descreve para a equipe técnica.
+Editais costumam ter um quadro com todos os perfis (às vezes com código, quantidade ou salário):
+quando houver, use esse quadro e não pare nos primeiros itens.
 
 Regras:
 - Use apenas o que está escrito. Não invente cargos.

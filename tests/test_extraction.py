@@ -86,22 +86,15 @@ def test_remove_caracteres_de_controle():
     assert paginas == ["Edital  com NUL.", "Segunda página"]
 
 
-def test_tabela_vira_linhas_com_colunas():
-    from app.extraction.documents import tabela_em_linhas
+def test_remove_cabecalho_repetido():
+    from app.extraction.documents import parece_tabela, remover_repetidas
 
-    layout = "\n".join([
-        "UASG 201057                                   Termo de Referência",
-        "  Perfil              Formação                 Conhecimentos",
-        "  Analista de         Curso superior           * Java",
-        "  Testes Pleno        completo em TI           * Selenium",
-        "                      ou Exatas                * REST",
-        "  Desenvolvedor       Curso superior           * C#",
-        "  Sênior              completo                 * ASP.NET",
-        "                      em TI                    * SQL Server",
-    ])
-    linhas = tabela_em_linhas(layout).splitlines()
-    assert linhas[2] == "Analista de | Curso superior | * Java"
-    assert tabela_em_linhas("Texto corrido de um parágrafo comum.\n" * 10) is None
+    assuntos = ["objeto", "proposta", "habilitação", "equipe", "pagamento", "sanções", "vigência", "garantia", "foro"]
+    paginas = [f"Termo de Referência 10/2023 - página {n} de 9\nCláusula sobre {a}." for n, a in enumerate(assuntos, 1)]
+    limpas = remover_repetidas(paginas)
+    assert all("Termo de Referência" not in p for p in limpas) and limpas[3] == "Cláusula sobre equipe."
+    assert parece_tabela("\n".join(["Analista de", "Testes Pleno", "Curso superior", "completo em TI"] * 5))
+    assert not parece_tabela("Uma linha comprida de texto corrido de um edital qualquer, com cláusulas.\n" * 20)
 
 
 def test_pdf_com_tabela_de_bordas_mantem_cada_linha_junta(tmp_path):

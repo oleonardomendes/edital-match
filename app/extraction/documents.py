@@ -45,25 +45,32 @@ def extrair_texto(nome_arquivo: str, conteudo: bytes) -> str:
     return juntar_paginas(extrair_paginas(nome_arquivo, conteudo))
 
 
-_LACUNA = re.compile(r" {3,}")
+def parece_tabela(texto: str) -> bool:
+    """Página com muitas linhas curtas costuma ser tabela: o pypdf quebra cada célula em pedaços.
 
-
-def tabela_em_linhas(texto_layout: str) -> str | None:
-    """Converte uma página com tabela, extraída no modo layout, em linhas com colunas separadas por " | ".
-
-    Na extração comum, o pypdf lê tabelas de várias colunas fora de ordem e
-    mistura as células de linhas diferentes. No modo layout, cada linha do texto
-    mantém a posição horizontal das células; trocar os espaços largos por " | "
-    deixa o conteúdo de cada linha da tabela junto. Devolve None quando a página
-    não parece uma tabela.
+    É uma checagem barata, para só essas páginas passarem pelo pdfplumber (mais lento).
     """
-    linhas = [l.strip() for l in texto_layout.splitlines() if l.strip()]
-    if len(linhas) < 8:
-        return None
-    com_colunas = sum(1 for l in linhas if _LACUNA.search(l))
-    if com_colunas / len(linhas) < 0.4:
-        return None
-    return "\n".join(_LACUNA.sub(" | ", l) for l in linhas)
+    linhas = [l for l in texto.splitlines() if l.strip()]
+    if len(linhas) < 15:
+        return False
+    curtas = sum(1 for l in linhas if len(l.strip()) <= 30)
+    return curtas / len(linhas) >= 0.45
+
+
+def remover_repetidas(paginas: list[str], fracao: float = 0.6) -> list[str]:
+    """Tira cabeçalhos e rodapés que se repetem na maioria das páginas.
+
+    Em editais, linhas como "Termo de Referência 10/2023 · UASG 201057" aparecem
+    em todas as páginas e poluem os trechos e a busca.
+    """
+    if len(paginas) < 5:
+        return paginas
+    from collections import Counter
+
+    chave = lambda l: re.sub(r"\d+", "#", " ".join(l.split()).lower())
+    contagem = Counter(k for p in paginas for k in {chave(l) for l in p.splitlines() if l.strip()})
+    repetidas = {k for k, n in contagem.items() if n >= fracao * len(paginas)}
+    return ["\n".join(l for l in p.splitlines() if chave(l) not in repetidas) for p in paginas]
 
 
 def _celula(c: str | None) -> str:
@@ -104,14 +111,8 @@ def paginas_com_tabela(conteudo: bytes, numeros: list[int]) -> dict[int, str]:
 def _pdf(conteudo: bytes) -> list[str]:
     try:
         reader = PdfReader(io.BytesIO(conteudo))
-        paginas, suspeitas = [], []
-        for i, page in enumerate(reader.pages):
-            paginas.append(page.extract_text() or "")
-            try:
-                if tabela_em_linhas(page.extract_text(extraction_mode="layout") or ""):
-                    suspeitas.append(i)
-            except Exception:  # o modo layout falha em alguns PDFs; o texto comum continua valendo
-                pass
+        paginas = [page.extract_text() or "" for page in reader.pages]
+        suspeitas = [i for i, t in enumerate(paginas) if parece_tabela(t)]
     except Exception as exc:  # pypdf lança vários tipos
         raise DocumentoInvalido("PDF corrompido ou protegido por senha.") from exc
     if suspeitas:
@@ -120,7 +121,7 @@ def _pdf(conteudo: bytes) -> list[str]:
                 paginas[n] = texto
         except Exception:  # se o pdfplumber falhar, fica a leitura comum
             pass
-    return paginas
+    return remover_repetidas(paginas)
 
 
 def _docx(conteudo: bytes) -> str:
