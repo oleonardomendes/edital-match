@@ -86,10 +86,13 @@ def dividir(paginas: list[str], tamanho: int = 1_200, sobra: int = 200) -> list[
         pagina_inicio = pagina_atual
 
     for numero, pagina in enumerate(paginas, start=1):
-        # Um trecho não atravessa páginas, para a citação de página ficar exata.
-        if any(x.strip() for x in atual):
-            fechar(numero, manter_sobra=True)
-        pagina_inicio = numero
+        # Texto corrido pode continuar na página seguinte (uma frase cortada pela
+        # quebra de página fica inteira). Página de tabela sempre começa trecho novo,
+        # para cada linha da tabela levar a página certa.
+        if any(x.strip() for x in atual) and " | " in pagina:
+            fechar(numero, manter_sobra=False)
+        if not any(x.strip() for x in atual):
+            pagina_inicio = numero
         for linha in pagina.splitlines():
             linha = " ".join(linha.split())
             if not linha:
