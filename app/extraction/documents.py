@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import io
+import re
 
 from docx import Document
 from pypdf import PdfReader
+
+
+_CONTROLE = re.compile(r"[\x00-\x08\x0b\x0e-\x1f\x7f]")
 
 
 class DocumentoInvalido(ValueError):
@@ -23,7 +27,8 @@ def extrair_paginas(nome_arquivo: str, conteudo: bytes) -> list[str]:
         paginas = conteudo.decode("utf-8", errors="replace").split("\f")
     else:
         raise DocumentoInvalido(f"Formato não suportado: {nome_arquivo}. Envie PDF, DOCX ou TXT.")
-    paginas = [p.strip() for p in paginas]
+    # PDFs às vezes trazem caracteres de controle (como NUL), que o Postgres não aceita.
+    paginas = [_CONTROLE.sub(" ", p).strip() for p in paginas]
     if sum(len(p) for p in paginas) < 30:
         raise DocumentoInvalido(
             f"Não foi possível ler texto de {nome_arquivo}. Se for um PDF escaneado, envie uma versão com texto selecionável."

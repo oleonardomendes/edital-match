@@ -77,3 +77,10 @@ def test_erro_de_limite_do_provedor_vira_mensagem_clara():
         assert str(exc) == MSG_LIMITE
     else:
         raise AssertionError("deveria falhar")
+
+
+def test_remove_caracteres_de_controle():
+    from app.extraction.documents import extrair_paginas
+
+    paginas = extrair_paginas("a.txt", "Edital\x00 com NUL e \x07 sino.\fSegunda página".encode())
+    assert paginas == ["Edital  com NUL e   sino.", "Segunda página"]
