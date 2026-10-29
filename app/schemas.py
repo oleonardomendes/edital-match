@@ -37,6 +37,7 @@ class RequisitoFormacao(BaseModel):
     obrigatorio: bool = True
     peso: float = Field(1.0, ge=0)
     texto_original: str = ""
+    pagina: int | None = Field(None, description="Página do edital de onde saiu o requisito")
 
 
 class RequisitoExperiencia(BaseModel):
@@ -45,6 +46,7 @@ class RequisitoExperiencia(BaseModel):
     obrigatorio: bool = True
     peso: float = Field(1.0, ge=0)
     texto_original: str = ""
+    pagina: int | None = Field(None, description="Página do edital de onde saiu o requisito")
 
 
 class RequisitoCertificacao(BaseModel):
@@ -55,6 +57,7 @@ class RequisitoCertificacao(BaseModel):
     obrigatorio: bool = False
     peso: float = Field(1.0, ge=0)
     texto_original: str = ""
+    pagina: int | None = Field(None, description="Página do edital de onde saiu o requisito")
 
 
 class RequisitoCompetencia(BaseModel):
@@ -65,6 +68,7 @@ class RequisitoCompetencia(BaseModel):
     obrigatorio: bool = False
     peso: float = Field(1.0, ge=0)
     texto_original: str = ""
+    pagina: int | None = Field(None, description="Página do edital de onde saiu o requisito")
 
 
 class PerfilEdital(BaseModel):
@@ -78,11 +82,22 @@ class PerfilEdital(BaseModel):
     competencias: list[RequisitoCompetencia] = Field(default_factory=list)
 
 
+class RegraEquipe(BaseModel):
+    """Regra do edital sobre como e quando a equipe é comprovada."""
+
+    descricao: str = Field(description="Ex.: 'A equipe é comprovada na assinatura do contrato'")
+    pagina: int | None = None
+
+
 class RequisitosEdital(BaseModel):
     orgao: str | None = None
     numero: str | None = None
     objeto: str | None = None
     perfis: list[PerfilEdital]
+    regras_equipe: list[RegraEquipe] = Field(
+        default_factory=list,
+        description="Momento de comprovação da equipe, substituição de profissionais, vínculo aceito etc.",
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -144,10 +159,12 @@ class AvaliacaoCriterio(BaseModel):
 
 
 class ResultadoCandidato(BaseModel):
+    """Cobertura de um profissional para um perfil. Lacunas não eliminam: indicam o que falta comprovar."""
+
     candidato: str
     cargo: str
     score: float = Field(description="0 a 100")
-    elegivel: bool = Field(description="Falso se algum requisito obrigatório não é atendido")
+    elegivel: bool = Field(description="Verdadeiro quando cobre todos os itens exigidos; falso quando há lacunas")
     criterios: list[AvaliacaoCriterio]
     resumo: str
 

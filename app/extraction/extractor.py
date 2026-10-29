@@ -41,9 +41,14 @@ class Extractor:
         self.cache = cache
         self.limite_edital = limite_edital
 
-    def edital(self, texto: str) -> RequisitosEdital:
-        # Em editais longos, só os trechos da equipe técnica vão para o LLM.
-        return self._extrair("edital", texto, PROMPT_EDITAL, RequisitosEdital, enviar=selecionar_trechos(texto, limite=self.limite_edital))
+    def edital(self, texto: str, contexto: str | None = None) -> RequisitosEdital:
+        """Extrai os requisitos do edital.
+
+        ``contexto`` são os trechos recuperados pelo RAG (com página). Sem ele,
+        usa a seleção por palavras-chave, que não precisa de banco.
+        """
+        enviar = contexto or selecionar_trechos(texto.replace("\f", "\n"), limite=self.limite_edital)
+        return self._extrair("edital", texto, PROMPT_EDITAL, RequisitosEdital, enviar=enviar)
 
     def candidato(self, texto: str) -> PerfilCandidato:
         return self._extrair("cv", texto, PROMPT_CV, PerfilCandidato)

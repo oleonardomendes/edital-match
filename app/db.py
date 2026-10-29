@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, create_engine, select, text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Computed, DateTime, ForeignKey, Index, Integer, String, Text, create_engine, select, text
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 from app.config import get_settings
@@ -39,6 +39,25 @@ class Candidato(Base):
     perfil: Mapped[dict] = mapped_column(JSONB)
     embedding = mapped_column(Vector(), nullable=True)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_agora)
+
+
+class TrechoEdital(Base):
+    """Pedaço do edital indexado para a busca híbrida (vetor + texto)."""
+
+    __tablename__ = "trechos"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    edital_id: Mapped[int] = mapped_column(ForeignKey("editais.id", ondelete="CASCADE"), index=True)
+    ordem: Mapped[int] = mapped_column(Integer)
+    pagina: Mapped[int] = mapped_column(Integer)
+    secao: Mapped[str] = mapped_column(Text, default="")
+    texto: Mapped[str] = mapped_column(Text)
+    # Texto sem acentos e em minúsculas: a busca acha "qualificacao" e "qualificação".
+    texto_busca: Mapped[str] = mapped_column(Text)
+    tsv = mapped_column(TSVECTOR, Computed("to_tsvector('portuguese', texto_busca)", persisted=True))
+    embedding = mapped_column(Vector(), nullable=True)
+
+    __table_args__ = (Index("ix_trechos_tsv", "tsv", postgresql_using="gin"),)
 
 
 class Extracao(Base):
@@ -98,4 +117,4 @@ def get_session():
         yield s
 
 
-__all__ = ["Base", "Edital", "Candidato", "Extracao", "DbCache", "criar_tabelas", "get_session", "select"]
+__all__ = ["Base", "Edital", "Candidato", "TrechoEdital", "Extracao", "DbCache", "criar_tabelas", "get_session", "select"]

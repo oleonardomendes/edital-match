@@ -74,13 +74,29 @@ tr.cand{cursor:pointer} tr.cand:hover td{background:#fafbf9}
 .search{display:flex;gap:8px;margin-top:4px}
 .search input{flex:1;min-width:0;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px}
 .wrap{overflow-x:auto}
+.pncp{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.pncp-item{border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:start}
+.pncp-item b{font-size:.92rem} .pncp-item .meta{color:var(--muted);font-size:.82rem} .pncp-item p{margin:2px 0 0;font-size:.86rem}
+.pncp-item button{grid-row:1 / span 3;grid-column:2;align-self:center}
+@media (max-width:640px){.pncp-item{grid-template-columns:1fr}.pncp-item button{grid-row:auto;grid-column:1;justify-self:start}}
+.pg{font:500 .72rem var(--mono);color:var(--accent);background:var(--accent-soft);padding:1px 6px;border-radius:3px;white-space:nowrap}
+.regras{margin:12px 0 0;padding:10px 12px;border:1px solid var(--line);border-radius:6px;font-size:.88rem}
+.regras h4{margin:0 0 6px;font-size:.88rem} .regras li{margin:2px 0}
+.resposta{margin-top:12px;padding:12px 14px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 6px 6px 0}
+.resposta.nao{border-left-color:var(--warn);background:var(--warn-soft)}
+.fontes{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.fonte{border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:.86rem}
+.fonte .cab{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:.8rem;margin-bottom:4px}
+.fonte .txt{white-space:pre-wrap;max-height:9.5em;overflow:hidden}
+.sugs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sugs button{background:var(--bg);color:var(--ink);border:1px solid var(--line);font-weight:500;font-size:.82rem;padding:4px 10px;border-radius:999px}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style>
 </head>
 <body>
 <header>
   <h1>Edital Match</h1>
-  <p>Cruza os requisitos da equipe técnica de um edital com currículos e mostra quem atende, com a evidência de cada critério.</p>
+  <p>Lê editais de licitação com RAG, extrai os requisitos da equipe técnica e mostra a cobertura de cada profissional, com a página e a evidência de cada critério.</p>
 </header>
 <main>
   <section class="card">
@@ -90,16 +106,28 @@ tr.cand{cursor:pointer} tr.cand:hover td{background:#fafbf9}
       <button class="sec" id="b-exemplo">Usar o exemplo fictício</button>
     </div>
     <p class="hint">O exemplo carrega um edital de prefeitura fictícia e 8 currículos inventados, sem precisar de chave de IA.</p>
+    <div class="search"><input id="q-pncp" placeholder="Ou busque um edital público no PNCP: ex. fábrica de software"><button class="sec" id="b-pncp">Buscar no PNCP</button></div>
+    <label class="hint" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="pncp-abertas" checked> Só licitações recebendo propostas</label>
+    <div class="pncp" id="pncp"></div>
     <p class="err" id="e-edital" hidden></p>
     <div class="revbar" id="revbar" hidden>
       <span class="estado" id="estado"></span>
       <span class="acoes"><button class="sec" id="b-descartar" disabled>Descartar alterações</button><button id="b-salvar" disabled>Salvar e recalcular ranking</button></span>
     </div>
+    <div id="regras"></div>
     <div class="perfis" id="perfis"></div>
   </section>
 
+  <section class="card" id="c-perguntas" hidden>
+    <div class="step"><span>2</span><h2>Pergunte ao edital</h2></div>
+    <div class="search"><input id="q-edital" maxlength="500" placeholder="Ex.: a equipe precisa ser comprovada na proposta ou na assinatura do contrato?"><button id="b-perguntar">Perguntar</button></div>
+    <div class="sugs" id="sugs"></div>
+    <p class="err" id="e-perg" hidden></p>
+    <div id="resposta"></div>
+  </section>
+
   <section class="card">
-    <div class="step"><span>2</span><h2>Currículos</h2></div>
+    <div class="step"><span>3</span><h2>Currículos</h2></div>
     <div class="row"><label class="file">Enviar currículos<input type="file" id="f-cvs" accept=".pdf,.docx,.txt" multiple></label></div>
     <p class="err" id="e-cvs" hidden></p>
     <div class="chips" id="cands"></div>
@@ -108,7 +136,7 @@ tr.cand{cursor:pointer} tr.cand:hover td{background:#fafbf9}
   </section>
 
   <section class="card">
-    <div class="step"><span>3</span><h2>Ranking por cargo</h2></div>
+    <div class="step"><span>4</span><h2>Cobertura por cargo</h2></div>
     <div class="tabs" id="tabs"></div>
     <div class="wrap" id="ranking"><p class="hint">Carregue um edital e currículos para ver o ranking.</p></div>
   </section>
@@ -145,7 +173,10 @@ function campos(t, r, a){
 }
 
 function renderEdital(){
-  if(!edital){ $("#perfis").innerHTML = ""; $("#revbar").hidden = true; return; }
+  $("#c-perguntas").hidden = !edital;
+  if(!edital){ $("#perfis").innerHTML = ""; $("#regras").innerHTML = ""; $("#revbar").hidden = true; return; }
+  const regras = edital.requisitos.regras_equipe || [];
+  $("#regras").innerHTML = regras.length ? `<div class="regras"><h4>Regras do edital sobre a equipe</h4><ul style="margin:0;padding-left:18px">${regras.map(r => `<li>${esc(r.descricao)} ${r.pagina ? `<span class="pg">p. ${r.pagina}</span>` : ""}</li>`).join("")}</ul></div>` : "";
   rascunho = rascunho || structuredClone(edital.requisitos);
   $("#revbar").hidden = false;
   $("#estado").innerHTML = alterado ? "<b>Alterações não salvas.</b> O ranking abaixo ainda usa os requisitos anteriores."
@@ -158,7 +189,7 @@ function renderEdital(){
       return `<div class="ed"><span class="tipo">${TIPOS[t]}</span><div class="campos">${campos(t, r, a)}</div>
         <button class="tog ${r.obrigatorio?"obr":"des"}" data-acao="obrigatorio" ${a} title="Clique para alternar" aria-pressed="${r.obrigatorio}">${r.obrigatorio?"Exigido":"Desejável"}</button>
         <label class="peso">peso <input class="num" type="number" min="0" step="0.5" data-f="peso" ${a} value="${r.peso}" aria-label="Peso"></label>
-        <span style="display:flex;gap:4px">${r.texto_original ? `<button class="ico" data-acao="trecho" ${a} aria-expanded="${trechos.has(chave)}">Trecho</button>` : ""}<button class="ico" data-acao="remover" ${a} aria-label="Remover requisito">Remover</button></span>
+        <span style="display:flex;gap:4px;align-items:center">${r.pagina ? `<span class="pg" title="Página do edital">p. ${r.pagina}</span>` : ""}${r.texto_original ? `<button class="ico" data-acao="trecho" ${a} aria-expanded="${trechos.has(chave)}">Trecho</button>` : ""}<button class="ico" data-acao="remover" ${a} aria-label="Remover requisito">Remover</button></span>
         ${r.texto_original && trechos.has(chave) ? `<blockquote class="trecho">${esc(r.texto_original)}</blockquote>` : ""}</div>`;
     }).join("")).join("") +
     `<div class="add"><select data-novo="${pi}" aria-label="Tipo de requisito">${Object.entries(TIPOS).map(([t,l]) => `<option value="${t}">${l}</option>`).join("")}</select><button class="sec" data-acao="adicionar" data-p="${pi}">Adicionar requisito</button></div></div>`
@@ -208,14 +239,14 @@ async function carregarRanking(){
   renderEdital();
   const [rk] = await api(`/api/editais/${edital.id}/ranking?cargo=${encodeURIComponent(cargoAtivo)}`);
   if(!rk.resultados.length){ $("#ranking").innerHTML = `<p class="hint">Envie currículos para gerar o ranking.</p>`; return; }
-  $("#ranking").innerHTML = `<table><thead><tr><th>#</th><th>Candidato</th><th>Situação</th><th>Score</th><th>Resumo</th></tr></thead><tbody>` +
+  $("#ranking").innerHTML = `<table><thead><tr><th>#</th><th>Candidato</th><th>Cobertura</th><th>Pontos</th><th>Resumo</th></tr></thead><tbody>` +
     rk.resultados.map((r,i) => `<tr class="cand" data-i="${i}" tabindex="0"><td>${i+1}</td><td><b>${esc(r.candidato)}</b></td>
-      <td><span class="st ${r.elegivel?"apto":"inapto"}">${r.elegivel?"Apto":"Inapto"}</span></td>
+      <td><span class="st ${r.elegivel?"apto":"parcial"}">${r.elegivel?"Cobre os exigidos":"Com lacunas"}</span></td>
       <td><div class="score">${r.score.toFixed(1)}</div><div class="bar"><i style="width:${r.score}%"></i></div></td><td>${esc(r.resumo)}</td></tr>
       <tr class="detail" id="d${i}" hidden><td></td><td colspan="4">${r.criterios.map(c => `<div class="crit">
         <div><span class="st ${c.status}">${{atende:"Atende",parcial:"Parcial",nao_atende:"Não atende"}[c.status]}</span></div>
         <div><b>${esc(c.requisito)}</b>${c.obrigatorio?" · exigido":""}<div class="ev">${esc(c.evidencia)}</div><div>${esc(c.justificativa)}</div></div></div>`).join("")}</td></tr>`).join("") +
-    `</tbody></table><p class="hint">Clique em um candidato para ver a evidência de cada critério.</p>`;
+    `</tbody></table><p class="hint">Clique em um profissional para ver a evidência de cada critério. Lacunas não eliminam: mostram o que falta comprovar ou quem falta indicar.</p>`;
 }
 
 $("#ranking").addEventListener("click", e => { const tr = e.target.closest("tr.cand"); if(tr){ const d = $("#d"+tr.dataset.i); d.hidden = !d.hidden; } });
@@ -225,8 +256,8 @@ $("#tabs").addEventListener("click", e => { const b = e.target.closest(".tab"); 
 $("#f-edital").addEventListener("change", async e => {
   const f = e.target.files[0]; if(!f) return; erro("#e-edital");
   const fd = new FormData(); fd.append("arquivo", f);
-  $("#perfis").innerHTML = `<p class="hint">Lendo o edital...</p>`;
-  try{ edital = await api("/api/editais", {method:"POST", body:fd}); cargoAtivo = null; rascunho = null; alterado = false; await carregarRanking(); }
+  $("#perfis").innerHTML = `<p class="hint">Indexando o edital e extraindo os requisitos...</p>`;
+  try{ novoEdital(await api("/api/editais", {method:"POST", body:fd})); await carregarRanking(); }
   catch(x){ erro("#e-edital", x.message); renderEdital(); }
   e.target.value = "";
 });
@@ -240,9 +271,51 @@ $("#f-cvs").addEventListener("change", async e => {
   }catch(x){ erro("#e-cvs", x.message); }
   e.target.value = "";
 });
+function novoEdital(e){ edital = e; cargoAtivo = null; rascunho = null; alterado = false; $("#resposta").innerHTML = ""; $("#q-edital").value = ""; }
+
+async function buscarPNCP(){
+  const q = $("#q-pncp").value.trim(); if(q.length < 3) return; erro("#e-edital");
+  $("#pncp").innerHTML = `<p class="hint">Buscando no PNCP...</p>`;
+  try{
+    const r = await api(`/api/pncp/busca?q=${encodeURIComponent(q)}&abertas=${$("#pncp-abertas").checked}`);
+    $("#pncp").innerHTML = r.length ? r.map(c => `<div class="pncp-item"><b>${esc(c.titulo)} · ${esc(c.orgao)}</b>
+      <span class="meta">${esc(c.municipio)}/${esc(c.uf)} · ${esc(c.modalidade)}${c.valor_estimado ? ` · R$ ${c.valor_estimado.toLocaleString("pt-BR",{maximumFractionDigits:0})}` : ""} · <a href="${esc(c.link)}" target="_blank" rel="noopener">ver no PNCP</a></span>
+      <p>${esc(c.descricao.slice(0,220))}</p>
+      <button class="sec" data-imp="${c.cnpj}|${c.ano}|${c.sequencial}">Importar</button></div>`).join("") : `<p class="hint">Nenhum edital encontrado.</p>`;
+  }catch(x){ $("#pncp").innerHTML = ""; erro("#e-edital", x.message); }
+}
+$("#b-pncp").addEventListener("click", buscarPNCP);
+$("#q-pncp").addEventListener("keydown", e => { if(e.key==="Enter") buscarPNCP(); });
+$("#pncp").addEventListener("click", async e => {
+  const b = e.target.closest("[data-imp]"); if(!b) return;
+  const [cnpj, ano, sequencial] = b.dataset.imp.split("|");
+  b.disabled = true; b.textContent = "Lendo os arquivos..."; erro("#e-edital");
+  try{
+    novoEdital(await api("/api/pncp/importar", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({cnpj, ano:Number(ano), sequencial:Number(sequencial)})}));
+    $("#pncp").innerHTML = ""; await carregarRanking();
+  }catch(x){ erro("#e-edital", x.message); b.disabled = false; b.textContent = "Importar"; }
+});
+
+const SUGESTOES = ["Quais profissionais a equipe técnica precisa ter?", "Quando a equipe precisa ser comprovada?", "O edital permite substituir profissionais?", "Quais certificações são exigidas?"];
+$("#sugs").innerHTML = SUGESTOES.map(s => `<button data-sug="${esc(s)}">${esc(s)}</button>`).join("");
+$("#sugs").addEventListener("click", e => { const b = e.target.closest("[data-sug]"); if(b){ $("#q-edital").value = b.dataset.sug; perguntar(); } });
+async function perguntar(){
+  const q = $("#q-edital").value.trim(); if(q.length < 5 || !edital) return; erro("#e-perg");
+  $("#b-perguntar").disabled = true; $("#resposta").innerHTML = `<p class="hint">Buscando nos trechos do edital...</p>`;
+  try{
+    const r = await api(`/api/editais/${edital.id}/perguntas`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({pergunta:q})});
+    const resp = r.resposta ? `<div class="resposta ${r.encontrou?"":"nao"}">${esc(r.resposta)} ${r.paginas.map(p => `<span class="pg">p. ${p}</span>`).join(" ")}</div>` : "";
+    const aviso = r.aviso ? `<p class="hint">${esc(r.aviso)}</p>` : "";
+    $("#resposta").innerHTML = resp + aviso + (r.trechos.length ? `<p class="hint">Trechos recuperados pela busca híbrida (vetorial + textual):</p><div class="fontes">${r.trechos.map(t => `<div class="fonte"><div class="cab"><span class="pg">p. ${t.pagina}</span>${t.secao ? `<b>${esc(t.secao)}</b>` : ""}<span>${t.fontes.join(" + ")}</span></div><div class="txt">${esc(t.texto)}</div></div>`).join("")}</div>` : "");
+  }catch(x){ $("#resposta").innerHTML = ""; erro("#e-perg", x.message); }
+  $("#b-perguntar").disabled = false;
+}
+$("#b-perguntar").addEventListener("click", perguntar);
+$("#q-edital").addEventListener("keydown", e => { if(e.key==="Enter") perguntar(); });
+
 $("#b-exemplo").addEventListener("click", async e => {
   e.target.disabled = true; erro("#e-edital");
-  try{ const r = await api("/api/exemplo", {method:"POST"}); edital = await api(`/api/editais/${r.edital_id}`); cargoAtivo = null; rascunho = null; alterado = false; await carregarCandidatos(); await carregarRanking(); }
+  try{ const r = await api("/api/exemplo", {method:"POST"}); novoEdital(await api(`/api/editais/${r.edital_id}`)); await carregarCandidatos(); await carregarRanking(); }
   catch(x){ erro("#e-edital", x.message); }
   e.target.disabled = false;
 });

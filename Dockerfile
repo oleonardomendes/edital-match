@@ -6,6 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Baixa o modelo de embeddings no build, para não baixar a cada reinício do servidor.
+ENV FASTEMBED_CACHE_PATH=/app/.models
+RUN python -c "from fastembed import TextEmbedding; TextEmbedding('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')"
+
 COPY app ./app
 COPY samples ./samples
 COPY eval ./eval

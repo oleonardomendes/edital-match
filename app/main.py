@@ -9,17 +9,21 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.db import Candidato, DbCache, Edital, Extracao, criar_tabelas, engine, get_session
-from app.extraction.documents import DocumentoInvalido, extrair_texto
+from app import pncp
+from app.db import Candidato, DbCache, Edital, Extracao, TrechoEdital, criar_tabelas, engine, get_session
+from app.extraction.documents import DocumentoInvalido, extrair_paginas, extrair_texto, juntar_paginas
 from app.extraction.extractor import Extractor
 from app.extraction.llm import LLM, ErroExtracao
 from app.matching.embeddings import Embedder
 from app.matching.scorer import Scorer
+from app.rag.busca import indexar, tem_indice
+from app.rag.contexto import montar_contexto
+from app.rag.perguntas import perguntar
 from app.schemas import PerfilCandidato, Ranking, RequisitosEdital
 from app.services import get_embedder, get_llm, get_scorer, texto_para_busca
 
@@ -60,11 +64,43 @@ def get_extractor(session: Session = Depends(get_session), llm: LLM = Depends(ge
     return Extractor(llm, DbCache(session), limite_edital=get_settings().edital_max_chars)
 
 
-async def _ler(arquivo: UploadFile) -> str:
+async def _bytes(arquivo: UploadFile) -> bytes:
     conteudo = await arquivo.read()
     if len(conteudo) > get_settings().max_upload_mb * 1024 * 1024:
         raise DocumentoInvalido(f"{arquivo.filename} passa do limite de {get_settings().max_upload_mb} MB.")
-    return extrair_texto(arquivo.filename or "arquivo", conteudo)
+    return conteudo
+
+
+async def _ler(arquivo: UploadFile) -> str:
+    return extrair_texto(arquivo.filename or "arquivo", await _bytes(arquivo))
+
+
+def _paginas_marcadas(paginas: list[str]) -> str:
+    return "\n\n".join(f"[p. {n}]\n{p}" for n, p in enumerate(paginas, start=1) if p.strip())
+
+
+def _processar_edital(nome: str, paginas: list[str], session: Session, extractor: Extractor, embedder: Embedder) -> Edital:
+    """Indexa o edital e extrai os requisitos a partir dos trechos recuperados (RAG)."""
+    texto = juntar_paginas(paginas)
+    e = Edital(nome_arquivo=nome[:255], texto=texto, requisitos={"perfis": []})
+    session.add(e)
+    session.flush()
+    try:
+        indexar(session, e.id, paginas, embedder)
+        limite = get_settings().edital_max_chars
+        completo = _paginas_marcadas(paginas)
+        # Edital curto vai inteiro; longo vai só com os trechos recuperados.
+        contexto = completo if len(completo) <= limite else montar_contexto(session, e.id, embedder, limite)[0]
+        requisitos = extractor.edital(texto, contexto=contexto)
+    except Exception:
+        session.rollback()
+        raise
+    if not requisitos.perfis:
+        session.rollback()
+        raise HTTPException(422, "Nenhum perfil profissional foi encontrado neste edital.")
+    e.requisitos = requisitos.model_dump(mode="json")
+    session.commit()
+    return e
 
 
 # --------------------------------------------------------------------------- #
@@ -111,19 +147,15 @@ async def criar_edital(
     arquivo: UploadFile = File(...),
     session: Session = Depends(get_session),
     extractor: Extractor = Depends(get_extractor),
+    embedder: Embedder = Depends(get_embedder),
 ):
     try:
-        texto = await _ler(arquivo)
-        requisitos = extractor.edital(texto)
+        paginas = extrair_paginas(arquivo.filename or "arquivo", await _bytes(arquivo))
+        e = _processar_edital(arquivo.filename or "edital", paginas, session, extractor, embedder)
     except DocumentoInvalido as exc:
         raise HTTPException(422, str(exc)) from exc
     except ErroExtracao as exc:
         raise HTTPException(502, str(exc)) from exc
-    if not requisitos.perfis:
-        raise HTTPException(422, "Nenhum perfil profissional foi encontrado neste edital.")
-    e = Edital(nome_arquivo=arquivo.filename, texto=texto, requisitos=requisitos.model_dump(mode="json"))
-    session.add(e)
-    session.commit()
     return _edital_out(e)
 
 
@@ -238,10 +270,8 @@ def carregar_exemplo(
 ):
     """Carrega o edital e os currículos fictícios de exemplo (funciona no modo demo)."""
     pasta = RAIZ / "samples" / "pdfs"
-    texto = extrair_texto("edital.pdf", (pasta / "edital_vale_verde.pdf").read_bytes())
-    e = Edital(nome_arquivo="edital_vale_verde.pdf", texto=texto,
-               requisitos=extractor.edital(texto).model_dump(mode="json"))
-    session.add(e)
+    paginas = extrair_paginas("edital.pdf", (pasta / "edital_vale_verde.pdf").read_bytes())
+    e = _processar_edital("edital_vale_verde.pdf", paginas, session, extractor, embedder)
     existentes = set(session.scalars(select(Candidato.nome_arquivo)))
     for pdf in sorted(pasta.glob("cv_*.pdf")):
         if pdf.name in existentes:
@@ -253,6 +283,131 @@ def carregar_exemplo(
                               embedding=embedder.embed([texto_para_busca(perfil)])[0]))
     session.commit()
     return {"edital_id": e.id, "candidatos": session.query(Candidato).count()}
+
+
+# --------------------------------------------------------------------------- #
+# RAG: perguntas sobre o edital
+class PerguntaIn(BaseModel):
+    pergunta: str = Field(min_length=5, max_length=500)
+
+
+class TrechoOut(BaseModel):
+    pagina: int
+    secao: str
+    texto: str
+    score: float
+    fontes: list[str]
+
+
+class RespostaOut(BaseModel):
+    pergunta: str
+    encontrou: bool | None
+    resposta: str | None
+    paginas: list[int]
+    trechos: list[TrechoOut]
+    aviso: str | None = None
+
+
+def _garantir_indice(e: Edital, session: Session, embedder: Embedder) -> None:
+    """Editais enviados antes do RAG são indexados na primeira pergunta."""
+    if not tem_indice(session, e.id):
+        indexar(session, e.id, e.texto.split("\f"), embedder)
+        session.commit()
+
+
+@app.post("/api/editais/{edital_id}/perguntas", response_model=RespostaOut)
+def perguntar_ao_edital(
+    edital_id: int,
+    body: PerguntaIn,
+    session: Session = Depends(get_session),
+    embedder: Embedder = Depends(get_embedder),
+    llm: LLM = Depends(get_llm),
+):
+    e = session.get(Edital, edital_id)
+    if not e:
+        raise HTTPException(404, "Edital não encontrado.")
+    _garantir_indice(e, session, embedder)
+    resposta, trechos, erro = perguntar(session, edital_id, body.pergunta, embedder, llm)
+    if erro and get_settings().llm_provider == "demo":
+        erro = "Modo demo: sem chave de IA, a resposta não é gerada. Abaixo estão os trechos que a busca encontrou."
+    return RespostaOut(
+        pergunta=body.pergunta,
+        encontrou=resposta.encontrou if resposta else None,
+        resposta=resposta.resposta if resposta else None,
+        paginas=resposta.paginas if resposta else [],
+        trechos=[TrechoOut(pagina=t.pagina, secao=t.secao, texto=t.texto, score=round(t.score, 4), fontes=t.fontes) for t in trechos],
+        aviso=erro,
+    )
+
+
+@app.get("/api/editais/{edital_id}/trechos", response_model=list[TrechoOut])
+def listar_trechos(edital_id: int, session: Session = Depends(get_session), embedder: Embedder = Depends(get_embedder)):
+    """Trechos indexados do edital, na ordem do documento."""
+    e = session.get(Edital, edital_id)
+    if not e:
+        raise HTTPException(404, "Edital não encontrado.")
+    _garantir_indice(e, session, embedder)
+    linhas = session.scalars(select(TrechoEdital).where(TrechoEdital.edital_id == edital_id).order_by(TrechoEdital.ordem))
+    return [TrechoOut(pagina=t.pagina, secao=t.secao, texto=t.texto, score=0, fontes=[]) for t in linhas]
+
+
+# --------------------------------------------------------------------------- #
+# PNCP: editais públicos
+class ContratacaoOut(BaseModel):
+    titulo: str
+    descricao: str
+    orgao: str
+    municipio: str
+    uf: str
+    modalidade: str
+    fim_propostas: str | None
+    valor_estimado: float | None
+    cnpj: str
+    ano: int
+    sequencial: int
+    link: str
+
+
+class ImportarIn(BaseModel):
+    cnpj: str = Field(pattern=r"^\d{14}$")
+    ano: int = Field(ge=2021, le=2100)
+    sequencial: int = Field(ge=1)
+
+
+@app.get("/api/pncp/busca", response_model=list[ContratacaoOut])
+def buscar_pncp(q: str = Query(..., min_length=3), pagina: int = Query(1, ge=1, le=20), abertas: bool = True):
+    try:
+        itens = pncp.buscar(q, pagina=pagina, abertas=abertas)
+    except pncp.ErroPNCP as exc:
+        raise HTTPException(502, str(exc)) from exc
+    return [ContratacaoOut(**{**i.__dict__, "link": i.link}) for i in itens]
+
+
+@app.post("/api/pncp/importar", response_model=EditalOut, status_code=201)
+def importar_pncp(
+    body: ImportarIn,
+    session: Session = Depends(get_session),
+    extractor: Extractor = Depends(get_extractor),
+    embedder: Embedder = Depends(get_embedder),
+):
+    try:
+        documentos = pncp.baixar_documentos(body.cnpj, body.ano, body.sequencial, limite_mb=get_settings().max_upload_mb * 3)
+        paginas: list[str] = []
+        for nome, conteudo in documentos:
+            try:
+                paginas.extend(extrair_paginas(nome, conteudo))
+            except DocumentoInvalido:
+                continue  # um anexo escaneado não impede a leitura dos outros
+        if not paginas:
+            raise DocumentoInvalido("Nenhum arquivo da contratação tem texto selecionável (podem ser PDFs escaneados).")
+        e = _processar_edital(f"PNCP {body.cnpj}/{body.ano}/{body.sequencial}", paginas, session, extractor, embedder)
+    except pncp.ErroPNCP as exc:
+        raise HTTPException(502, str(exc)) from exc
+    except DocumentoInvalido as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except ErroExtracao as exc:
+        raise HTTPException(502, str(exc)) from exc
+    return _edital_out(e)
 
 
 log = logging.getLogger("uvicorn.error")
@@ -286,6 +441,52 @@ def avaliacao(token: str = Query(...), refazer: bool = False):
             _avaliacao.update(status="rodando", modelo=s.llm_model)
             threading.Thread(target=_rodar_avaliacao, daemon=True).start()
     return _avaliacao
+
+
+def _admin(token: str) -> None:
+    s = get_settings()
+    if not s.admin_token or not secrets.compare_digest(token, s.admin_token):
+        raise HTTPException(404, "Not Found")
+
+
+@app.get("/api/avaliacao-busca", include_in_schema=False)
+def avaliacao_busca(
+    token: str = Query(...),
+    edital_id: int = Query(...),
+    conjunto: str = Query(...),
+    session: Session = Depends(get_session),
+    embedder: Embedder = Depends(get_embedder),
+):
+    """Mede a recuperação de trechos (acerto@k, MRR) num edital já importado. Protegida por ADMIN_TOKEN."""
+    _admin(token)
+    from eval.busca import avaliar_busca, carregar_gabarito
+
+    e = session.get(Edital, edital_id)
+    if not e:
+        raise HTTPException(404, "Edital não encontrado.")
+    try:
+        gab = carregar_gabarito(conjunto)
+    except KeyError as exc:
+        raise HTTPException(404, f"Conjunto {conjunto!r} não existe no gabarito.") from exc
+    _garantir_indice(e, session, embedder)
+    resultado = avaliar_busca(session, edital_id, gab["perguntas"], embedder)
+    resultado["embedder"] = get_settings().embedding_provider
+    log.info("AVALIACAO_BUSCA %s %s", conjunto, json.dumps(resultado, ensure_ascii=False))
+    return resultado
+
+
+@app.post("/api/admin/reindexar", include_in_schema=False)
+def reindexar(token: str = Query(...), session: Session = Depends(get_session), embedder: Embedder = Depends(get_embedder)):
+    """Recalcula embeddings de editais e currículos, por exemplo depois de trocar o modelo de embeddings."""
+    _admin(token)
+    editais = list(session.scalars(select(Edital)))
+    for e in editais:
+        indexar(session, e.id, e.texto.split("\f"), embedder)
+    candidatos = list(session.scalars(select(Candidato)))
+    for c in candidatos:
+        c.embedding = embedder.embed([texto_para_busca(PerfilCandidato.model_validate(c.perfil))])[0]
+    session.commit()
+    return {"editais": len(editais), "candidatos": len(candidatos)}
 
 
 @app.get("/", include_in_schema=False)

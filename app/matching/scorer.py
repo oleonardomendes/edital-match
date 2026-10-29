@@ -181,8 +181,8 @@ class Scorer:
         base = f"Atende {atende} de {len(criterios)} critérios."
         if pendentes:
             lista = "; ".join(c.requisito for c in pendentes)
-            return f"{base} Inelegível: não atende requisito obrigatório ({lista})."
-        return f"{base} Atende todos os requisitos obrigatórios."
+            return f"{base} Lacuna em item exigido: {lista}."
+        return f"{base} Cobre todos os itens exigidos."
 
 
 def _descrever_experiencia(e: Experiencia) -> str:

@@ -43,7 +43,8 @@ class FastEmbedEmbedder:
     def __init__(self, model: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2") -> None:
         from fastembed import TextEmbedding  # dependência opcional
 
-        self._model = TextEmbedding(model_name=model)
+        # Uma thread só: o plano gratuito do Render tem 512 MB de memória.
+        self._model = TextEmbedding(model_name=model, threads=1)
         self.dim = len(next(iter(self._model.embed(["teste"]))))
 
     def embed(self, textos: list[str]) -> list[list[float]]:

@@ -10,6 +10,12 @@ Regras:
   edital atribui; sem pontuação definida, peso 1.
 - Converta tempo de experiência para anos (ex.: 24 meses = 2).
 - Em texto_original, copie o trecho do edital que gerou o requisito.
+- O texto pode vir em trechos marcados com [p. N · seção]. Em pagina, informe o N do
+  trecho de onde saiu cada requisito. Sem marcação, deixe pagina vazia.
+- Em regras_equipe, registre o que o edital diz sobre quando e como a equipe é comprovada
+  (na proposta, na habilitação ou na assinatura do contrato), substituição de profissionais
+  e tipo de vínculo aceito (CLT, contrato de prestação de serviço, declaração de contratação
+  futura). Só o que estiver escrito.
 - Separe certificações (PMP, ITIL, Scrum) de competências técnicas (Java, Oracle, SQL).
 - Um requisito com "X e Y" exige as duas coisas: crie um requisito para X e outro para Y
   (ex.: "Oracle e PL/SQL" vira duas competências). Um requisito com "X ou Y" aceita qualquer

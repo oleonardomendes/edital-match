@@ -121,3 +121,55 @@ def test_revisao_rejeita_peso_negativo(client):
 
 def test_avaliacao_exige_token(client):
     assert client.get("/api/avaliacao", params={"token": "qualquer"}).status_code == 404
+
+
+def test_pergunte_ao_edital_no_modo_demo(client):
+    edital = client.get("/api/editais").json()[0]
+    r = client.post(f"/api/editais/{edital['id']}/perguntas", json={"pergunta": "Qual certificação o gerente de projetos precisa?"})
+    assert r.status_code == 200, r.text
+    corpo = r.json()
+    assert corpo["resposta"] is None and corpo["aviso"].startswith("Modo demo")
+    assert any("PMP" in t["texto"] for t in corpo["trechos"][:2])
+    assert all(t["pagina"] >= 1 for t in corpo["trechos"])
+
+
+def test_trechos_do_edital(client):
+    edital = client.get("/api/editais").json()[0]
+    trechos = client.get(f"/api/editais/{edital['id']}/trechos").json()
+    assert [t["secao"] for t in trechos][:2] == ["1. OBJETO", "2. EQUIPE TÉCNICA MÍNIMA"]
+
+
+def test_importar_do_pncp(client, monkeypatch):
+    """Importa os arquivos de uma contratação (aqui, o edital de exemplo no lugar do download)."""
+    from app import pncp
+
+    pdf = (PDFS / "edital_vale_verde.pdf").read_bytes()
+    monkeypatch.setattr(pncp, "baixar_documentos", lambda *a, **k: [("edital.pdf", pdf), ("anexo.xlsx", b"x")])
+    r = client.post("/api/pncp/importar", json={"cnpj": "05901308000121", "ano": 2026, "sequencial": 3})
+    assert r.status_code == 201, r.text
+    assert r.json()["nome_arquivo"] == "PNCP 05901308000121/2026/3"
+    assert client.post("/api/pncp/importar", json={"cnpj": "123", "ano": 2026, "sequencial": 3}).status_code == 422
+
+
+def test_erro_do_pncp_vira_502(client, monkeypatch):
+    from app import pncp
+
+    def falha(*a, **k):
+        raise pncp.ErroPNCP("O PNCP limitou o número de consultas.")
+
+    monkeypatch.setattr(pncp, "buscar", falha)
+    r = client.get("/api/pncp/busca", params={"q": "software"})
+    assert r.status_code == 502 and "limitou" in r.json()["detail"]
+
+
+def test_avaliacao_da_busca_no_exemplo(client, monkeypatch):
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "admin_token", "segredo")
+    edital = next(e for e in client.get("/api/editais").json() if e["nome_arquivo"] == "edital_vale_verde.pdf")
+    r = client.get("/api/avaliacao-busca", params={"token": "segredo", "edital_id": edital["id"], "conjunto": "vale_verde"})
+    assert r.status_code == 200, r.text
+    m = r.json()["metodos"]["hibrida"]
+    assert m["acerto@3"] == 1.0
+    assert client.post("/api/admin/reindexar", params={"token": "errado"}).status_code == 404
+    assert client.post("/api/admin/reindexar", params={"token": "segredo"}).json()["candidatos"] >= 8

@@ -1,0 +1,11 @@
+{
+  "vale_verde": {
+    "descricao": "Edital fictício de exemplo (samples/pdfs/edital_vale_verde.pdf). Curto: serve de teste de sanidade, não de medida.",
+    "perguntas": [
+      {"pergunta": "Qual certificação o gerente de projetos precisa ter?", "espera": ["Certificação PMP"]},
+      {"pergunta": "Quantos anos de experiência o analista de sistemas sênior precisa?", "espera": ["ANALISTA DE SISTEMAS SÊNIOR"]},
+      {"pergunta": "Como a experiência será comprovada?", "espera": ["carteira de trabalho"]},
+      {"pergunta": "Qual é o objeto da contratação?", "espera": ["Contratação de empresa especializada"]}
+    ]
+  }
+}
