@@ -2,10 +2,130 @@
   "vale_verde": {
     "descricao": "Edital fictício de exemplo (samples/pdfs/edital_vale_verde.pdf). Curto: serve de teste de sanidade, não de medida.",
     "perguntas": [
-      {"pergunta": "Qual certificação o gerente de projetos precisa ter?", "espera": ["Certificação PMP"]},
-      {"pergunta": "Quantos anos de experiência o analista de sistemas sênior precisa?", "espera": ["ANALISTA DE SISTEMAS SÊNIOR"]},
-      {"pergunta": "Como a experiência será comprovada?", "espera": ["carteira de trabalho"]},
-      {"pergunta": "Qual é o objeto da contratação?", "espera": ["Contratação de empresa especializada"]}
+      {
+        "pergunta": "Qual certificação o gerente de projetos precisa ter?",
+        "espera": [
+          "Certificação PMP"
+        ]
+      },
+      {
+        "pergunta": "Quantos anos de experiência o analista de sistemas sênior precisa?",
+        "espera": [
+          "ANALISTA DE SISTEMAS SÊNIOR"
+        ]
+      },
+      {
+        "pergunta": "Como a experiência será comprovada?",
+        "espera": [
+          "carteira de trabalho"
+        ]
+      },
+      {
+        "pergunta": "Qual é o objeto da contratação?",
+        "espera": [
+          "Contratação de empresa especializada"
+        ]
+      }
+    ]
+  },
+  "tjac_2024": {
+    "descricao": "Edital público real: Tribunal de Justiça do Acre, Pregão Eletrônico 36/2024, fábrica de software (PNCP 04034872000121/2024/138). Termo de referência e anexos, cerca de 110 páginas. Importe pelo PNCP antes de avaliar.",
+    "pncp": {
+      "cnpj": "04034872000121",
+      "ano": 2024,
+      "sequencial": 138
+    },
+    "perguntas": [
+      {
+        "pergunta": "Quais perfis compõem a equipe mínima do time?",
+        "espera": [
+          "composicao minima do time"
+        ]
+      },
+      {
+        "pergunta": "Quando a experiência dos profissionais deve ser comprovada?",
+        "espera": [
+          "comprovada apos a assinatura"
+        ]
+      },
+      {
+        "pergunta": "O que acontece se um profissional não comprovar os conhecimentos exigidos?",
+        "espera": [
+          "apresentar outro profissional"
+        ]
+      },
+      {
+        "pergunta": "Qual a experiência exigida do arquiteto pleno ASP e .NET?",
+        "espera": [
+          "arquiteto de aplicacoes web utilizando tecnologias asp"
+        ]
+      },
+      {
+        "pergunta": "Que experiência o analista de testes pleno mobile precisa ter?",
+        "espera": [
+          "testes de aplicacoes web utilizando tecnologias mobile"
+        ]
+      },
+      {
+        "pergunta": "Qual o salário de referência do desenvolvedor sênior?",
+        "espera": [
+          "desenvolvedor de software senior"
+        ]
+      },
+      {
+        "pergunta": "Qual a produtividade mínima esperada por ponto de função?",
+        "espera": [
+          "10 horas por ponto de funcao"
+        ]
+      },
+      {
+        "pergunta": "É permitida a subcontratação?",
+        "espera": [
+          "nao e admitida a subcontratacao"
+        ]
+      },
+      {
+        "pergunta": "Quais habilidades comportamentais são exigidas dos profissionais?",
+        "espera": [
+          "habilidades comportamentais"
+        ]
+      },
+      {
+        "pergunta": "Qual certificação de Scrum Master é aceita?",
+        "espera": [
+          "psm i emitido pela scrum"
+        ]
+      },
+      {
+        "pergunta": "Há necessidade de vistoria do local?",
+        "espera": [
+          "nao ha necessidade de realizacao de avaliacao previa"
+        ]
+      },
+      {
+        "pergunta": "Abaixo de qual valor o ponto de função é considerado inexequível?",
+        "espera": [
+          "inferior a r 886 51"
+        ]
+      },
+      {
+        "pergunta": "Como a formação dos profissionais será comprovada?",
+        "espera": [
+          "diploma devidamente registrado"
+        ]
+      },
+      {
+        "pergunta": "Como é calculado o indicador de aceitação das sprints?",
+        "espera": [
+          "indicador de aceitacao"
+        ]
+      },
+      {
+        "pergunta": "Qual método ágil o processo de desenvolvimento adota?",
+        "espera": [
+          "baseia se no metodo scrum"
+        ]
+      }
     ]
   }
 }
