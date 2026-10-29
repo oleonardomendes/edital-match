@@ -17,6 +17,7 @@ class ErroExtracao(RuntimeError):
     pass
 
 
+MSG_USO = "O provedor de IA atingiu o limite de uso por minuto do plano. Tente de novo em instantes."
 MSG_LIMITE = (
     "O documento passou do limite de tamanho do provedor de IA. Envie só o termo de referência "
     "(a parte com a equipe técnica) ou use um plano com limite maior."
@@ -67,7 +68,9 @@ class AnthropicLLM:
                     messages=[{"role": "user", "content": f"<documento>\n{texto}\n</documento>"}],
                 )
             except APIStatusError as exc:
-                if exc.status_code in (413, 429):
+                if exc.status_code == 429:
+                    raise ErroExtracao(MSG_USO) from exc
+                if exc.status_code == 413:
                     raise ErroExtracao(MSG_LIMITE) from exc
                 raise ErroExtracao(f"O provedor de IA respondeu com erro {exc.status_code}.") from exc
             bloco = next((b for b in resp.content if b.type == "tool_use"), None)
@@ -115,7 +118,9 @@ class OpenAICompatibleLLM:
                     extra_body=extra or None,
                 )
             except APIStatusError as exc:
-                if exc.status_code in (413, 429):
+                if exc.status_code == 429:
+                    raise ErroExtracao(MSG_USO) from exc
+                if exc.status_code == 413:
                     raise ErroExtracao(MSG_LIMITE) from exc
                 raise ErroExtracao(f"O provedor de IA respondeu com erro {exc.status_code}.") from exc
             conteudo = resp.choices[0].message.content or ""

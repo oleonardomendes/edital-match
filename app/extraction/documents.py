@@ -45,10 +45,39 @@ def extrair_texto(nome_arquivo: str, conteudo: bytes) -> str:
     return juntar_paginas(extrair_paginas(nome_arquivo, conteudo))
 
 
+_LACUNA = re.compile(r" {3,}")
+
+
+def tabela_em_linhas(texto_layout: str) -> str | None:
+    """Converte uma página com tabela, extraída no modo layout, em linhas com colunas separadas por " | ".
+
+    Na extração comum, o pypdf lê tabelas de várias colunas fora de ordem e
+    mistura as células de linhas diferentes. No modo layout, cada linha do texto
+    mantém a posição horizontal das células; trocar os espaços largos por " | "
+    deixa o conteúdo de cada linha da tabela junto. Devolve None quando a página
+    não parece uma tabela.
+    """
+    linhas = [l.strip() for l in texto_layout.splitlines() if l.strip()]
+    if len(linhas) < 8:
+        return None
+    com_colunas = sum(1 for l in linhas if _LACUNA.search(l))
+    if com_colunas / len(linhas) < 0.4:
+        return None
+    return "\n".join(_LACUNA.sub(" | ", l) for l in linhas)
+
+
 def _pdf(conteudo: bytes) -> list[str]:
     try:
         reader = PdfReader(io.BytesIO(conteudo))
-        return [page.extract_text() or "" for page in reader.pages]
+        paginas = []
+        for page in reader.pages:
+            texto = page.extract_text() or ""
+            try:
+                tabela = tabela_em_linhas(page.extract_text(extraction_mode="layout") or "")
+            except Exception:  # o modo layout falha em alguns PDFs; o texto comum continua valendo
+                tabela = None
+            paginas.append(tabela or texto)
+        return paginas
     except Exception as exc:  # pypdf lança vários tipos
         raise DocumentoInvalido("PDF corrompido ou protegido por senha.") from exc
 

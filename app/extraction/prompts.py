@@ -25,6 +25,38 @@ Regras:
   ["Tecnologia da Informação", "Ciência da Computação", "Sistemas de Informação"]).
 """
 
+PROMPT_CARGOS = """Você recebe trechos de um edital de licitação ou termo de referência, marcados com [p. N · seção].
+Liste os perfis profissionais que o edital exige ou descreve para a equipe técnica.
+
+Regras:
+- Use apenas o que está escrito. Não invente cargos.
+- Cada nível conta como um perfil diferente (ex.: "Desenvolvedor Júnior Java" e "Desenvolvedor
+  Sênior Java"). Use o nome como o edital escreve.
+- Em pagina, informe o N do trecho onde o perfil é descrito.
+- Em regras_equipe, registre o que o edital diz sobre quando e como a equipe é comprovada
+  (na proposta, na habilitação ou após a assinatura do contrato), substituição de profissionais
+  e vínculo aceito. Só o que estiver escrito, com a página.
+- Tabelas de PDF podem vir com as colunas misturadas. Junte as partes com cuidado.
+"""
+
+PROMPT_PERFIL = """Você recebe trechos de um edital de licitação, marcados com [p. N · seção].
+Extraia os requisitos de UM perfil profissional: {cargo}.
+
+Regras:
+- Use apenas o que o edital exige para este perfil. Ignore requisitos de outros perfis que
+  apareçam nos mesmos trechos. Se os trechos não descrevem este perfil, devolva as listas vazias.
+- Requisito obrigatório: o edital usa "exigido", "obrigatório", "mínimo", "deverá possuir".
+  Desejável: só soma pontos ou é chamado de desejável.
+- Pesos: obrigatórios peso 3; desejáveis usam os pontos do edital, ou 1.
+- Converta tempo de experiência para anos.
+- Formação com alternativas ("curso de TI, ou qualquer superior com pós em TI") é UM requisito:
+  use o menor nível aceito e liste as áreas.
+- "X e Y" exige os dois (dois requisitos); "X ou Y" aceita qualquer um (um requisito com alternativas).
+- Separe certificações de competências técnicas. Habilidades comportamentais (comunicação,
+  proatividade) não são competências técnicas: deixe de fora.
+- Em texto_original, copie o trecho do edital. Em pagina, o N do trecho.
+"""
+
 PROMPT_CV = """Você recebe o texto de um currículo. Extraia os dados estruturados do candidato.
 
 Regras:

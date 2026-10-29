@@ -76,6 +76,8 @@ class PerfilEdital(BaseModel):
 
     cargo: str
     quantidade: int | None = None
+    detalhado: bool = Field(True, description="Falso quando só o nome do cargo foi extraído, sem os requisitos")
+    pagina: int | None = None
     formacao: list[RequisitoFormacao] = Field(default_factory=list)
     experiencias: list[RequisitoExperiencia] = Field(default_factory=list)
     certificacoes: list[RequisitoCertificacao] = Field(default_factory=list)
@@ -98,6 +100,22 @@ class RequisitosEdital(BaseModel):
         default_factory=list,
         description="Momento de comprovação da equipe, substituição de profissionais, vínculo aceito etc.",
     )
+
+
+class CargoResumo(BaseModel):
+    cargo: str = Field(description="Nome do perfil, com o nível quando houver (ex.: 'Desenvolvedor Sênior Java')")
+    quantidade: int | None = None
+    pagina: int | None = None
+
+
+class ListaCargos(BaseModel):
+    """Primeira etapa da extração em editais longos: só a lista de perfis e as regras da equipe."""
+
+    orgao: str | None = None
+    numero: str | None = None
+    objeto: str | None = None
+    cargos: list[CargoResumo]
+    regras_equipe: list[RegraEquipe] = Field(default_factory=list)
 
 
 # --------------------------------------------------------------------------- #

@@ -26,14 +26,31 @@ CONSULTAS_EXTRACAO = [
 ]
 
 
-def montar_contexto(session: Session, edital_id: int, embedder: Embedder, limite: int, k: int = 5) -> tuple[str, list[Resultado]]:
+CONSULTAS_CARGOS = [
+    "objeto da contratação",
+    "equipe técnica mínima e perfis profissionais exigidos",
+    "quadro de profissionais perfil quantidade",
+    "requisitos de formação da equipe técnicos capacitados",
+    "comprovação da experiência e qualificação dos profissionais após a assinatura do contrato",
+    "substituição de profissional por outro de experiência equivalente",
+]
+
+
+def contexto_do_cargo(session: Session, edital_id: int, cargo: str, embedder: Embedder, limite: int) -> str:
+    """Trechos que descrevem um perfil específico (formação, experiência, conhecimentos)."""
+    consultas = [cargo, f"{cargo} formação curso superior experiência mínima anos", f"{cargo} conhecimentos certificação"]
+    return montar_contexto(session, edital_id, embedder, limite, k=4, consultas=consultas)[0]
+
+
+def montar_contexto(session: Session, edital_id: int, embedder: Embedder, limite: int, k: int = 5,
+                    consultas: list[str] | None = None) -> tuple[str, list[Resultado]]:
     """Junta os melhores trechos de cada consulta até o limite de caracteres.
 
     Os trechos entram por ordem de relevância (o melhor de cada consulta
     primeiro), mas saem na ordem em que aparecem no edital, para o LLM ler um
     texto contínuo.
     """
-    por_consulta = [buscar(session, edital_id, c, embedder, k=k) for c in CONSULTAS_EXTRACAO]
+    por_consulta = [buscar(session, edital_id, c, embedder, k=k) for c in (consultas or CONSULTAS_EXTRACAO)]
     escolhidos: dict[int, Resultado] = {}
     tamanho = 0
     for posicao in range(k):  # rodadas: 1º de cada consulta, depois o 2º de cada, ...

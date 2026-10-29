@@ -183,8 +183,10 @@ function renderEdital(){
     : edital.revisado ? "<b>Revisado por uma pessoa.</b> O ranking usa estes requisitos."
     : "<b>Extraído pela IA.</b> Confira cada requisito com o trecho do edital antes de confiar no ranking.";
   $("#b-salvar").disabled = !alterado; $("#b-descartar").disabled = !alterado;
-  $("#perfis").innerHTML = rascunho.perfis.map((p, pi) => `<div class="perfil"><h3>${esc(p.cargo)}${p.quantidade ? ` <small style="color:var(--muted);font-weight:400">· ${p.quantidade} vaga(s)</small>` : ""}</h3>` +
-    Object.keys(TIPOS).map(t => p[t].map((r, i) => {
+  const pendentes = rascunho.perfis.filter(p => p.detalhado === false).length;
+  $("#perfis").innerHTML = (pendentes ? `<div class="revbar" style="margin-top:0"><span class="estado"><b>${rascunho.perfis.length} cargos encontrados.</b> Edital longo: os requisitos de cada cargo são extraídos à parte, com a busca dos trechos daquele cargo. Faltam ${pendentes}.</span><span class="acoes"><button class="sec" data-acao="todos" ${alterado?"disabled":""}>Extrair todos</button></span></div><p class="hint" id="progresso"></p>` : "") +
+    rascunho.perfis.map((p, pi) => `<div class="perfil"><h3>${esc(p.cargo)}${p.quantidade ? ` <small style="color:var(--muted);font-weight:400">· ${p.quantidade} vaga(s)</small>` : ""}${p.pagina ? ` <span class="pg">p. ${p.pagina}</span>` : ""}</h3>` +
+    (p.detalhado === false ? `<p class="hint">Requisitos ainda não extraídos. <button class="sec" data-acao="detalhar" data-p="${pi}" ${alterado?"disabled":""} style="margin-left:6px;padding:4px 10px">Extrair requisitos deste cargo</button></p></div>` : Object.keys(TIPOS).map(t => p[t].map((r, i) => {
       const a = `data-p="${pi}" data-t="${t}" data-i="${i}"`, chave = k(pi,t,i);
       return `<div class="ed"><span class="tipo">${TIPOS[t]}</span><div class="campos">${campos(t, r, a)}</div>
         <button class="tog ${r.obrigatorio?"obr":"des"}" data-acao="obrigatorio" ${a} title="Clique para alternar" aria-pressed="${r.obrigatorio}">${r.obrigatorio?"Exigido":"Desejável"}</button>
@@ -192,10 +194,29 @@ function renderEdital(){
         <span style="display:flex;gap:4px;align-items:center">${r.pagina ? `<span class="pg" title="Página do edital">p. ${r.pagina}</span>` : ""}${r.texto_original ? `<button class="ico" data-acao="trecho" ${a} aria-expanded="${trechos.has(chave)}">Trecho</button>` : ""}<button class="ico" data-acao="remover" ${a} aria-label="Remover requisito">Remover</button></span>
         ${r.texto_original && trechos.has(chave) ? `<blockquote class="trecho">${esc(r.texto_original)}</blockquote>` : ""}</div>`;
     }).join("")).join("") +
-    `<div class="add"><select data-novo="${pi}" aria-label="Tipo de requisito">${Object.entries(TIPOS).map(([t,l]) => `<option value="${t}">${l}</option>`).join("")}</select><button class="sec" data-acao="adicionar" data-p="${pi}">Adicionar requisito</button></div></div>`
+    `<div class="add"><select data-novo="${pi}" aria-label="Tipo de requisito">${Object.entries(TIPOS).map(([t,l]) => `<option value="${t}">${l}</option>`).join("")}</select><button class="sec" data-acao="adicionar" data-p="${pi}">Adicionar requisito</button></div></div>`)
   ).join("") + (rascunho.perfis.length ? "" : `<p class="hint">A IA não encontrou perfis de equipe neste edital. Muitos editais não listam profissionais: pergunte ao edital para conferir ou cadastre o cargo abaixo.</p>`) +
     `<div class="add"><input id="novo-cargo" placeholder="Nome do cargo, ex.: Desenvolvedor Pleno" aria-label="Novo cargo" style="flex:1 1 220px;font:inherit;font-size:.86rem;padding:4px 6px;border:1px solid var(--line);border-radius:4px"><button class="sec" data-acao="cargo">Adicionar cargo</button></div>`;
   $("#tabs").innerHTML = rascunho.perfis.map(p => `<button class="tab ${p.cargo===cargoAtivo?"on":""}" data-cargo="${esc(p.cargo)}">${esc(p.cargo)}</button>`).join("");
+}
+
+const espera = ms => new Promise(r => setTimeout(r, ms));
+async function detalhar(cargos){
+  erro("#e-edital");
+  for(const [n, cargo] of cargos.entries()){
+    for(let tentativa = 0; ; tentativa++){
+      const pr = $("#progresso"); if(pr) pr.textContent = `Extraindo ${n+1} de ${cargos.length}: ${cargo}...`;
+      try{
+        edital = await api(`/api/editais/${edital.id}/perfis/detalhar`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({cargo})});
+        rascunho = null; renderEdital(); break;
+      }catch(x){
+        // Plano gratuito do provedor de IA: espera a janela de um minuto e tenta de novo.
+        if(/limite de uso/i.test(x.message) && tentativa < 4){ const pr2 = $("#progresso"); if(pr2) pr2.textContent = `Limite do plano gratuito da IA. Tentando de novo em 30 s (${cargo})...`; await espera(30000); continue; }
+        erro("#e-edital", `${cargo}: ${x.message}`); return;
+      }
+    }
+  }
+  await carregarRanking();
 }
 
 function marcar(){ alterado = true; $("#estado").innerHTML = "<b>Alterações não salvas.</b> O ranking abaixo ainda usa os requisitos anteriores."; $("#b-salvar").disabled = false; $("#b-descartar").disabled = false; }
@@ -211,6 +232,8 @@ $("#perfis").addEventListener("input", e => {
 $("#perfis").addEventListener("click", e => {
   const b = e.target.closest("[data-acao]"); if(!b || !rascunho) return;
   const {acao, p, t, i} = b.dataset;
+  if(acao === "detalhar"){ detalhar([rascunho.perfis[p].cargo]); return; }
+  if(acao === "todos"){ detalhar(rascunho.perfis.filter(x => x.detalhado === false).map(x => x.cargo)); return; }
   if(acao === "cargo"){ const nome = $("#novo-cargo").value.trim(); if(!nome) return; rascunho.perfis.push({cargo:nome, quantidade:null, formacao:[], experiencias:[], certificacoes:[], competencias:[]}); marcar(); renderEdital(); return; }
   if(acao === "adicionar"){ const tipo = $(`select[data-novo="${p}"]`).value; rascunho.perfis[p][tipo].push(NOVO[tipo]()); marcar(); renderEdital(); return; }
   const itens = rascunho.perfis[p][t];
@@ -242,6 +265,7 @@ async function carregarRanking(){
   cargoAtivo = cargoAtivo || edital.requisitos.perfis[0].cargo;
   renderEdital();
   const [rk] = await api(`/api/editais/${edital.id}/ranking?cargo=${encodeURIComponent(cargoAtivo)}`);
+  if(edital.requisitos.perfis.find(p => p.cargo === cargoAtivo)?.detalhado === false){ $("#ranking").innerHTML = `<p class="hint">Extraia os requisitos deste cargo na etapa 1 para ver a cobertura.</p>`; return; }
   if(!rk.resultados.length){ $("#ranking").innerHTML = `<p class="hint">Envie currículos para gerar o ranking.</p>`; return; }
   $("#ranking").innerHTML = `<table><thead><tr><th>#</th><th>Candidato</th><th>Cobertura</th><th>Pontos</th><th>Resumo</th></tr></thead><tbody>` +
     rk.resultados.map((r,i) => `<tr class="cand" data-i="${i}" tabindex="0"><td>${i+1}</td><td><b>${esc(r.candidato)}</b></td>

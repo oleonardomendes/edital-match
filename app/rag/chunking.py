@@ -30,7 +30,7 @@ class Trecho:
 
 def eh_titulo(linha: str) -> bool:
     linha = linha.strip()
-    if not 4 <= len(linha) <= 110 or linha.endswith((",", ";")):
+    if not 4 <= len(linha) <= 110 or linha.endswith((",", ";")) or " | " in linha:
         return False
     letras = [c for c in linha if c.isalpha()]
     if len(letras) < 4:

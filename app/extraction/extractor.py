@@ -10,9 +10,9 @@ import hashlib
 from typing import Protocol
 
 from app.extraction.llm import LLM
-from app.extraction.prompts import PROMPT_CV, PROMPT_EDITAL
+from app.extraction.prompts import PROMPT_CARGOS, PROMPT_CV, PROMPT_EDITAL, PROMPT_PERFIL
 from app.extraction.secoes import selecionar_trechos
-from app.schemas import PerfilCandidato, RequisitosEdital
+from app.schemas import ListaCargos, PerfilCandidato, PerfilEdital, RequisitosEdital
 
 
 class Cache(Protocol):
@@ -49,6 +49,15 @@ class Extractor:
         """
         enviar = contexto or selecionar_trechos(texto.replace("\f", "\n"), limite=self.limite_edital)
         return self._extrair("edital", texto, PROMPT_EDITAL, RequisitosEdital, enviar=enviar)
+
+    def cargos(self, texto: str, contexto: str) -> ListaCargos:
+        """Etapa 1 em editais longos: a lista de perfis e as regras da equipe."""
+        return self._extrair("cargos", texto, PROMPT_CARGOS, ListaCargos, enviar=contexto)
+
+    def perfil(self, texto: str, cargo: str, contexto: str) -> PerfilEdital:
+        """Etapa 2: os requisitos de um perfil, a partir dos trechos recuperados para ele."""
+        prompt = PROMPT_PERFIL.replace("{cargo}", cargo)
+        return self._extrair(f"perfil:{cargo}", texto, prompt, PerfilEdital, enviar=contexto)
 
     def candidato(self, texto: str) -> PerfilCandidato:
         return self._extrair("cv", texto, PROMPT_CV, PerfilCandidato)

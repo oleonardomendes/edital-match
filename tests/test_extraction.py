@@ -84,3 +84,21 @@ def test_remove_caracteres_de_controle():
 
     paginas = extrair_paginas("a.txt", "Edital\x00 com NUL.\fSegunda página".encode())
     assert paginas == ["Edital  com NUL.", "Segunda página"]
+
+
+def test_tabela_vira_linhas_com_colunas():
+    from app.extraction.documents import tabela_em_linhas
+
+    layout = "\n".join([
+        "UASG 201057                                   Termo de Referência",
+        "  Perfil              Formação                 Conhecimentos",
+        "  Analista de         Curso superior           * Java",
+        "  Testes Pleno        completo em TI           * Selenium",
+        "                      ou Exatas                * REST",
+        "  Desenvolvedor       Curso superior           * C#",
+        "  Sênior              completo                 * ASP.NET",
+        "                      em TI                    * SQL Server",
+    ])
+    linhas = tabela_em_linhas(layout).splitlines()
+    assert linhas[2] == "Analista de | Curso superior | * Java"
+    assert tabela_em_linhas("Texto corrido de um parágrafo comum.\n" * 10) is None

@@ -173,3 +173,45 @@ def test_avaliacao_da_busca_no_exemplo(client, monkeypatch):
     assert m["acerto@3"] == 1.0
     assert client.post("/api/admin/reindexar", params={"token": "errado"}).status_code == 404
     assert client.post("/api/admin/reindexar", params={"token": "segredo"}).json()["candidatos"] >= 8
+
+
+def test_edital_longo_extrai_em_duas_etapas(client, monkeypatch):
+    """Edital maior que o limite: primeiro a lista de cargos, depois os requisitos de cada um."""
+    from app.config import get_settings
+    from app.main import app, get_extractor
+    from app.schemas import CargoResumo, ListaCargos, PerfilEdital, RegraEquipe, RequisitoExperiencia
+
+    vistos = []
+
+    class ExtractorFalso:
+        def cargos(self, texto, contexto):
+            vistos.append(("cargos", contexto))
+            return ListaCargos(cargos=[CargoResumo(cargo="Desenvolvedor Sênior", pagina=2)],
+                               regras_equipe=[RegraEquipe(descricao="Comprovação após a assinatura do contrato", pagina=3)])
+
+        def perfil(self, texto, cargo, contexto):
+            vistos.append(("perfil", contexto))
+            return PerfilEdital(cargo=cargo, experiencias=[RequisitoExperiencia(area="desenvolvimento de sistemas", anos_minimos=5, pagina=2)])
+
+    monkeypatch.setattr(get_settings(), "edital_max_chars", 1500)
+    app.dependency_overrides[get_extractor] = lambda: ExtractorFalso()
+    try:
+        paginas = ["PREGÃO ELETRÔNICO 1/2026\n1. DO OBJETO\nFábrica de software. " + "Cláusula genérica de pagamento e sanções. " * 30,
+                   "4.13 PERFIS PROFISSIONAIS\nDesenvolvedor Sênior: curso superior em TI e experiência mínima de 5 anos em desenvolvimento.",
+                   "4.14 COMPROVAÇÃO\nA experiência será comprovada após a assinatura do contrato."]
+        r = client.post("/api/editais", files=[("arquivo", ("longo.txt", "\f".join(paginas).encode(), "text/plain"))])
+        assert r.status_code == 201, r.text
+        ed = r.json()
+        perfil = ed["requisitos"]["perfis"][0]
+        assert perfil["detalhado"] is False and ed["requisitos"]["regras_equipe"][0]["pagina"] == 3
+        assert len(vistos[0][1]) <= 1500 + 400
+        assert client.get(f"/api/editais/{ed['id']}/ranking").json()[0]["resultados"] == []
+
+        r = client.post(f"/api/editais/{ed['id']}/perfis/detalhar", json={"cargo": "Desenvolvedor Sênior"})
+        assert r.status_code == 200, r.text
+        perfil = r.json()["requisitos"]["perfis"][0]
+        assert perfil["detalhado"] is True and perfil["pagina"] == 2 and perfil["experiencias"][0]["anos_minimos"] == 5
+        assert "Desenvolvedor Sênior" in vistos[1][1]
+        assert len(client.get(f"/api/editais/{ed['id']}/ranking").json()[0]["resultados"]) >= 8
+    finally:
+        app.dependency_overrides.clear()

@@ -22,9 +22,9 @@ from app.extraction.llm import LLM, ErroExtracao
 from app.matching.embeddings import Embedder
 from app.matching.scorer import Scorer
 from app.rag.busca import indexar, tem_indice
-from app.rag.contexto import montar_contexto
+from app.rag.contexto import CONSULTAS_CARGOS, contexto_do_cargo, montar_contexto
 from app.rag.perguntas import perguntar
-from app.schemas import PerfilCandidato, Ranking, RequisitosEdital
+from app.schemas import PerfilCandidato, PerfilEdital, Ranking, RequisitosEdital
 from app.services import get_embedder, get_llm, get_scorer, texto_para_busca
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -89,9 +89,18 @@ def _processar_edital(nome: str, paginas: list[str], session: Session, extractor
         indexar(session, e.id, paginas, embedder)
         limite = get_settings().edital_max_chars
         completo = _paginas_marcadas(paginas)
-        # Edital curto vai inteiro; longo vai só com os trechos recuperados.
-        contexto = completo if len(completo) <= limite else montar_contexto(session, e.id, embedder, limite)[0]
-        requisitos = extractor.edital(texto, contexto=contexto)
+        if len(completo) <= limite:
+            # Edital curto: vai inteiro, numa chamada só.
+            requisitos = extractor.edital(texto, contexto=completo)
+        else:
+            # Edital longo: primeiro a lista de cargos; os requisitos de cada cargo são
+            # extraídos depois, cada um com os trechos recuperados para ele.
+            contexto = montar_contexto(session, e.id, embedder, limite, consultas=CONSULTAS_CARGOS)[0]
+            lista = extractor.cargos(texto, contexto)
+            requisitos = RequisitosEdital(
+                orgao=lista.orgao, numero=lista.numero, objeto=lista.objeto, regras_equipe=lista.regras_equipe,
+                perfis=[PerfilEdital(cargo=c.cargo, quantidade=c.quantidade, pagina=c.pagina, detalhado=False) for c in lista.cargos],
+            )
     except Exception:
         session.rollback()
         raise
@@ -185,6 +194,40 @@ def revisar_requisitos(edital_id: int, requisitos: RequisitosEdital, session: Se
     return _edital_out(e)
 
 
+class DetalharIn(BaseModel):
+    cargo: str
+
+
+@app.post("/api/editais/{edital_id}/perfis/detalhar", response_model=EditalOut)
+def detalhar_perfil(
+    edital_id: int,
+    body: DetalharIn,
+    session: Session = Depends(get_session),
+    extractor: Extractor = Depends(get_extractor),
+    embedder: Embedder = Depends(get_embedder),
+):
+    """Etapa 2 da extração: busca os trechos de um cargo e extrai os requisitos dele."""
+    e = session.get(Edital, edital_id)
+    if not e:
+        raise HTTPException(404, "Edital não encontrado.")
+    req = RequisitosEdital.model_validate(e.requisitos)
+    i = next((i for i, p in enumerate(req.perfis) if p.cargo == body.cargo), None)
+    if i is None:
+        raise HTTPException(404, f"O edital não tem o cargo {body.cargo!r}.")
+    _garantir_indice(e, session, embedder)
+    contexto = contexto_do_cargo(session, e.id, body.cargo, embedder, get_settings().edital_max_chars)
+    try:
+        novo = extractor.perfil(e.texto, body.cargo, contexto)
+    except ErroExtracao as exc:
+        raise HTTPException(502, str(exc)) from exc
+    atual = req.perfis[i]
+    req.perfis[i] = novo.model_copy(update={"cargo": atual.cargo, "quantidade": atual.quantidade or novo.quantidade,
+                                            "pagina": atual.pagina or novo.pagina, "detalhado": True})
+    e.requisitos = req.model_dump(mode="json")
+    session.commit()
+    return _edital_out(e)
+
+
 @app.post("/api/candidatos", response_model=UploadCandidatosOut, status_code=201)
 async def adicionar_candidatos(
     arquivos: list[UploadFile] = File(...),
@@ -260,7 +303,8 @@ def ranking(
     if not perfis:
         raise HTTPException(404, f"O edital não tem o cargo {cargo!r}.")
     candidatos = [PerfilCandidato.model_validate(c.perfil) for c in session.scalars(select(Candidato))]
-    return [scorer.ranking(p, candidatos) for p in perfis]
+    # Cargo ainda sem requisitos extraídos não tem ranking.
+    return [scorer.ranking(p, candidatos) if p.detalhado else Ranking(cargo=p.cargo, resultados=[]) for p in perfis]
 
 
 @app.post("/api/exemplo", status_code=201)
