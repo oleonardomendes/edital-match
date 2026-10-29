@@ -63,7 +63,10 @@ class Extractor:
         return self._extrair("cv", texto, PROMPT_CV, PerfilCandidato)
 
     def _extrair(self, tipo, texto, prompt, schema, enviar: str | None = None):
-        chave = chave_texto(tipo, texto)
+        # Edital e currículo: a chave é o documento (o modo demo depende disso).
+        # Etapas do RAG: a chave inclui o contexto e o prompt, que mudam quando a busca melhora.
+        base = texto if tipo in ("edital", "cv") else f"{texto}\0{prompt}\0{enviar}"
+        chave = chave_texto(tipo, base)
         if (salvo := self.cache.get(chave)) is not None:
             return schema.model_validate_json(salvo)
         resultado = self.llm.extrair(prompt, enviar or texto, schema)
