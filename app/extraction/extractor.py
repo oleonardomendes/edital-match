@@ -57,7 +57,8 @@ class Extractor:
     def perfil(self, texto: str, cargo: str, contexto: str) -> PerfilEdital:
         """Etapa 2: os requisitos de um perfil, a partir dos trechos recuperados para ele."""
         prompt = PROMPT_PERFIL.replace("{cargo}", cargo)
-        return self._extrair(f"perfil:{cargo}", texto, prompt, PerfilEdital, enviar=contexto)
+        # O nome do cargo entra na chave do cache pelo prompt.
+        return self._extrair("perfil", texto, prompt, PerfilEdital, enviar=contexto)
 
     def candidato(self, texto: str) -> PerfilCandidato:
         return self._extrair("cv", texto, PROMPT_CV, PerfilCandidato)
