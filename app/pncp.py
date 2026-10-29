@@ -54,7 +54,8 @@ def _cliente(client: httpx.Client | None) -> httpx.Client:
 
 
 def buscar(q: str, pagina: int = 1, abertas: bool = True, client: httpx.Client | None = None) -> list[Contratacao]:
-    params = {"q": q, "tipos_documento": "edital", "ordenacao": "-data", "pagina": pagina, "tam_pagina": 10}
+    # Sem "ordenacao": a ordem padrão é por relevância; por data, a busca textual quase não filtra.
+    params = {"q": q, "tipos_documento": "edital", "pagina": pagina, "tam_pagina": 10}
     if abertas:
         params["status"] = "recebendo_proposta"
     c = _cliente(client)

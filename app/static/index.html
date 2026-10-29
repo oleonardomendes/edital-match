@@ -193,7 +193,8 @@ function renderEdital(){
         ${r.texto_original && trechos.has(chave) ? `<blockquote class="trecho">${esc(r.texto_original)}</blockquote>` : ""}</div>`;
     }).join("")).join("") +
     `<div class="add"><select data-novo="${pi}" aria-label="Tipo de requisito">${Object.entries(TIPOS).map(([t,l]) => `<option value="${t}">${l}</option>`).join("")}</select><button class="sec" data-acao="adicionar" data-p="${pi}">Adicionar requisito</button></div></div>`
-  ).join("");
+  ).join("") + (rascunho.perfis.length ? "" : `<p class="hint">A IA não encontrou perfis de equipe neste edital. Muitos editais não listam profissionais: pergunte ao edital para conferir ou cadastre o cargo abaixo.</p>`) +
+    `<div class="add"><input id="novo-cargo" placeholder="Nome do cargo, ex.: Desenvolvedor Pleno" aria-label="Novo cargo" style="flex:1 1 220px;font:inherit;font-size:.86rem;padding:4px 6px;border:1px solid var(--line);border-radius:4px"><button class="sec" data-acao="cargo">Adicionar cargo</button></div>`;
   $("#tabs").innerHTML = rascunho.perfis.map(p => `<button class="tab ${p.cargo===cargoAtivo?"on":""}" data-cargo="${esc(p.cargo)}">${esc(p.cargo)}</button>`).join("");
 }
 
@@ -210,6 +211,7 @@ $("#perfis").addEventListener("input", e => {
 $("#perfis").addEventListener("click", e => {
   const b = e.target.closest("[data-acao]"); if(!b || !rascunho) return;
   const {acao, p, t, i} = b.dataset;
+  if(acao === "cargo"){ const nome = $("#novo-cargo").value.trim(); if(!nome) return; rascunho.perfis.push({cargo:nome, quantidade:null, formacao:[], experiencias:[], certificacoes:[], competencias:[]}); marcar(); renderEdital(); return; }
   if(acao === "adicionar"){ const tipo = $(`select[data-novo="${p}"]`).value; rascunho.perfis[p][tipo].push(NOVO[tipo]()); marcar(); renderEdital(); return; }
   const itens = rascunho.perfis[p][t];
   if(acao === "obrigatorio"){ itens[i].obrigatorio = !itens[i].obrigatorio; marcar(); }
@@ -235,6 +237,8 @@ async function carregarCandidatos(){
 
 async function carregarRanking(){
   if(!edital){ return; }
+  renderEdital();
+  if(!edital.requisitos.perfis.length){ $("#tabs").innerHTML = ""; $("#ranking").innerHTML = `<p class="hint">Cadastre pelo menos um cargo na etapa 1 para ver a cobertura.</p>`; return; }
   cargoAtivo = cargoAtivo || edital.requisitos.perfis[0].cargo;
   renderEdital();
   const [rk] = await api(`/api/editais/${edital.id}/ranking?cargo=${encodeURIComponent(cargoAtivo)}`);

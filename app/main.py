@@ -95,9 +95,8 @@ def _processar_edital(nome: str, paginas: list[str], session: Session, extractor
     except Exception:
         session.rollback()
         raise
-    if not requisitos.perfis:
-        session.rollback()
-        raise HTTPException(422, "Nenhum perfil profissional foi encontrado neste edital.")
+    # Muitos editais não listam perfis de equipe. O edital fica salvo mesmo
+    # assim: dá para perguntar sobre ele e cadastrar os cargos na revisão.
     e.requisitos = requisitos.model_dump(mode="json")
     session.commit()
     return e
@@ -256,6 +255,8 @@ def ranking(
         raise HTTPException(404, "Edital não encontrado.")
     req = RequisitosEdital.model_validate(e.requisitos)
     perfis = [p for p in req.perfis if cargo is None or p.cargo == cargo]
+    if not perfis and cargo is None:
+        return []
     if not perfis:
         raise HTTPException(404, f"O edital não tem o cargo {cargo!r}.")
     candidatos = [PerfilCandidato.model_validate(c.perfil) for c in session.scalars(select(Candidato))]
