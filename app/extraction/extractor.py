@@ -11,6 +11,7 @@ from typing import Protocol
 
 from app.extraction.llm import LLM
 from app.extraction.prompts import PROMPT_CV, PROMPT_EDITAL
+from app.extraction.secoes import selecionar_trechos
 from app.schemas import PerfilCandidato, RequisitosEdital
 
 
@@ -40,15 +41,16 @@ class Extractor:
         self.cache = cache
 
     def edital(self, texto: str) -> RequisitosEdital:
-        return self._extrair("edital", texto, PROMPT_EDITAL, RequisitosEdital)
+        # Em editais longos, só os trechos da equipe técnica vão para o LLM.
+        return self._extrair("edital", texto, PROMPT_EDITAL, RequisitosEdital, enviar=selecionar_trechos(texto))
 
     def candidato(self, texto: str) -> PerfilCandidato:
         return self._extrair("cv", texto, PROMPT_CV, PerfilCandidato)
 
-    def _extrair(self, tipo, texto, prompt, schema):
+    def _extrair(self, tipo, texto, prompt, schema, enviar: str | None = None):
         chave = chave_texto(tipo, texto)
         if (salvo := self.cache.get(chave)) is not None:
             return schema.model_validate_json(salvo)
-        resultado = self.llm.extrair(prompt, texto, schema)
+        resultado = self.llm.extrair(prompt, enviar or texto, schema)
         self.cache.set(chave, tipo, resultado.model_dump_json())
         return resultado

@@ -20,6 +20,9 @@ class Settings(BaseSettings):
 
     max_upload_mb: int = 10
 
+    # Libera a rota /api/avaliacao, que roda a avaliação com o LLM configurado.
+    admin_token: str | None = None
+
 
 @lru_cache
 def get_settings() -> Settings:

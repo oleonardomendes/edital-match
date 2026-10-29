@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import logging
+import secrets
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -250,6 +253,39 @@ def carregar_exemplo(
                               embedding=embedder.embed([texto_para_busca(perfil)])[0]))
     session.commit()
     return {"edital_id": e.id, "candidatos": session.query(Candidato).count()}
+
+
+log = logging.getLogger("uvicorn.error")
+_avaliacao: dict = {"status": "parada"}
+_trava = threading.Lock()
+
+
+def _rodar_avaliacao() -> None:
+    from eval.run_eval import avaliar
+
+    try:
+        resultado = avaliar("llm", verbose=False, llm=get_llm())
+        _avaliacao.update(status="concluida", resultado=resultado)
+        log.info("AVALIACAO_LLM %s", json.dumps(resultado, ensure_ascii=False))
+    except Exception as exc:  # o erro aparece para quem consultar a rota
+        _avaliacao.update(status="erro", erro=f"{type(exc).__name__}: {exc}")
+        log.exception("AVALIACAO_LLM falhou")
+
+
+@app.get("/api/avaliacao", include_in_schema=False)
+def avaliacao(token: str = Query(...), refazer: bool = False):
+    """Roda a avaliação com o LLM configurado, em segundo plano. Protegida por ADMIN_TOKEN."""
+    s = get_settings()
+    if not s.admin_token or not secrets.compare_digest(token, s.admin_token):
+        raise HTTPException(404, "Not Found")
+    if s.llm_provider == "demo":
+        raise HTTPException(409, "Configure LLM_PROVIDER e LLM_API_KEY para avaliar com IA.")
+    with _trava:
+        if _avaliacao["status"] != "rodando" and (refazer or _avaliacao["status"] == "parada"):
+            _avaliacao.clear()
+            _avaliacao.update(status="rodando", modelo=s.llm_model)
+            threading.Thread(target=_rodar_avaliacao, daemon=True).start()
+    return _avaliacao
 
 
 @app.get("/", include_in_schema=False)

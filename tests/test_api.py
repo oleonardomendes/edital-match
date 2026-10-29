@@ -117,3 +117,7 @@ def test_revisao_rejeita_peso_negativo(client):
     req["perfis"][0]["competencias"][0]["peso"] = -1
     r = client.put(f"/api/editais/{edital['id']}/requisitos", json=req)
     assert r.status_code == 422
+
+
+def test_avaliacao_exige_token(client):
+    assert client.get("/api/avaliacao", params={"token": "qualquer"}).status_code == 404

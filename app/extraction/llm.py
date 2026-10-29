@@ -27,7 +27,7 @@ class AnthropicLLM:
     def __init__(self, model: str, api_key: str | None = None) -> None:
         from anthropic import Anthropic
 
-        self._client = Anthropic(api_key=api_key)
+        self._client = Anthropic(api_key=api_key, max_retries=4, timeout=120)
         self._model = model
 
     def extrair(self, instrucoes: str, texto: str, schema: type[T]) -> T:
@@ -63,7 +63,8 @@ class OpenAICompatibleLLM:
     def __init__(self, model: str, api_key: str | None = None, base_url: str | None = None) -> None:
         from openai import OpenAI
 
-        self._client = OpenAI(api_key=api_key, base_url=base_url)
+        # O plano gratuito do Groq limita tokens por minuto; o SDK espera e tenta de novo.
+        self._client = OpenAI(api_key=api_key, base_url=base_url, max_retries=6, timeout=120)
         self._model = model
 
     def extrair(self, instrucoes: str, texto: str, schema: type[T]) -> T:

@@ -23,21 +23,43 @@ from app.extraction.extractor import Extractor, MemoryCache
 from app.matching.scorer import Scorer
 from app.schemas import PerfilCandidato, RequisitosEdital, StatusCriterio
 from app.services import get_llm, get_scorer
+from eval.extracao import achar_cargo, comparar_cv, comparar_edital
 from samples.candidatos import CANDIDATOS
 
 RAIZ = Path(__file__).resolve().parent.parent
 PDFS = RAIZ / "samples" / "pdfs"
 
 
-def carregar(modo: str) -> tuple[RequisitosEdital, list[PerfilCandidato]]:
+def gabarito_extracao() -> tuple[RequisitosEdital, list[PerfilCandidato]]:
+    edital = RequisitosEdital.model_validate_json(
+        (RAIZ / "samples" / "gabarito" / "edital_vale_verde.json").read_text(encoding="utf-8"))
+    return edital, [PerfilCandidato.model_validate(c["perfil"]) for c in CANDIDATOS]
+
+
+def carregar(modo: str, llm=None) -> tuple[RequisitosEdital, list[PerfilCandidato]]:
     if modo == "gabarito":
-        edital = RequisitosEdital.model_validate_json(
-            (RAIZ / "samples" / "gabarito" / "edital_vale_verde.json").read_text(encoding="utf-8"))
-        return edital, [PerfilCandidato.model_validate(c["perfil"]) for c in CANDIDATOS]
-    ext = Extractor(get_llm(), MemoryCache())
+        return gabarito_extracao()
+    ext = Extractor(llm or get_llm(), MemoryCache())
     ler = lambda nome: extrair_texto(nome, (PDFS / nome).read_bytes())  # noqa: E731
     edital = ext.edital(ler("edital_vale_verde.pdf"))
     return edital, [ext.candidato(ler(c["arquivo"])) for c in CANDIDATOS]
+
+
+def medir_extracao(edital: RequisitosEdital, candidatos: list[PerfilCandidato], referencia: date) -> dict:
+    ed_g, cvs_g = gabarito_extracao()
+    cvs = [comparar_cv(e, g, referencia) for e, g in zip(candidatos, cvs_g)]
+    soma = lambda chave: tuple(map(sum, zip(*(c[chave] for c in cvs))))  # noqa: E731
+    return {
+        "edital": comparar_edital(edital, ed_g),
+        "curriculos": {
+            "nomes_corretos": sum(c["nome_ok"] for c in cvs),
+            "total": len(cvs),
+            "experiencias_extraidas_vs_esperadas": soma("experiencias"),
+            "maior_diferenca_em_anos": max(c["diferenca_anos"] for c in cvs),
+            "certificacoes_corretas": soma("certificacoes_ok"),
+            "formacoes_corretas": soma("formacoes_ok"),
+        },
+    }
 
 
 def ndcg(obtida: list[str], esperada: list[str]) -> float:
@@ -48,16 +70,19 @@ def ndcg(obtida: list[str], esperada: list[str]) -> float:
     return dcg / idcg if idcg else 1.0
 
 
-def avaliar(modo: str, scorer: Scorer | None = None, verbose: bool = True) -> dict:
+def avaliar(modo: str, scorer: Scorer | None = None, verbose: bool = True, llm=None) -> dict:
     gab = json.loads((RAIZ / "eval" / "gabarito.json").read_text(encoding="utf-8"))
     scorer = scorer or get_scorer()
     scorer.referencia = date.fromisoformat(gab["data_referencia"])
-    edital, candidatos = carregar(modo)
+    edital, candidatos = carregar(modo, llm)
+    extracao = medir_extracao(edital, candidatos, scorer.referencia) if modo == "llm" else None
+    # As decisões são comparadas pelo arquivo de origem, mesmo que o LLM escreva o nome diferente.
+    candidatos = [c.model_copy(update={"nome": g["perfil"]["nome"]}) for c, g in zip(candidatos, CANDIDATOS)]
 
     acertos = total = motivos_ok = motivos_total = 0
     ndcgs, erros = [], []
     for cargo, esperado in gab["cargos"].items():
-        perfil = next((p for p in edital.perfis if p.cargo == cargo), None)
+        perfil = achar_cargo(edital.perfis, cargo)
         if perfil is None:
             erros.append(f"[{cargo}] cargo não encontrado na extração do edital")
             continue
@@ -92,12 +117,17 @@ def avaliar(modo: str, scorer: Scorer | None = None, verbose: bool = True) -> di
         "decisoes_avaliadas": total,
         "erros": erros,
     }
+    if extracao:
+        m["extracao"] = extracao
     if verbose:
         print("\nResultado")
         for k in ("acuracia_apto_inapto", "acuracia_motivos_inaptidao", "ndcg_ordem_aptos", "decisoes_avaliadas"):
             print(f"  {k}: {m[k]}")
         for e in erros:
             print(f"  ! {e}")
+        if extracao:
+            print("\nExtração")
+            print(json.dumps(extracao, ensure_ascii=False, indent=2))
     return m
 
 
