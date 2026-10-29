@@ -102,3 +102,28 @@ def test_tabela_vira_linhas_com_colunas():
     linhas = tabela_em_linhas(layout).splitlines()
     assert linhas[2] == "Analista de | Curso superior | * Java"
     assert tabela_em_linhas("Texto corrido de um parágrafo comum.\n" * 10) is None
+
+
+def test_pdf_com_tabela_de_bordas_mantem_cada_linha_junta(tmp_path):
+    """Tabela de perfis com várias colunas: cada perfil sai numa linha, com todas as células."""
+    reportlab = pytest.importorskip("reportlab")  # noqa: F841
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, TableStyle
+
+    from app.extraction.documents import extrair_paginas
+
+    st = getSampleStyleSheet()["BodyText"]
+    linhas = [[Paragraph(t, st) for t in ("Perfil", "Experiência", "Formação", "Conhecimentos")]]
+    for perfil, exp, conh in [("Analista de Testes Pleno - JAVA", "mínima de 3 (três) anos em testes de aplicações web", "* Java * Selenium"),
+                              ("Desenvolvedor Sênior - ASP e .NET", "mínima de 5 (cinco) anos em desenvolvimento", "* C# * ASP.NET")] * 3:
+        linhas.append([Paragraph(t, st) for t in (perfil, exp, "Curso superior completo em Tecnologia da Informação ou Exatas", conh)])
+    tabela = Table(linhas, colWidths=[110, 140, 140, 110])
+    tabela.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.5, colors.black)]))
+    arquivo = tmp_path / "tabela.pdf"
+    SimpleDocTemplate(str(arquivo), pagesize=A4).build([Paragraph("4.13. Requisitos de Experiência Profissional", st), tabela])
+
+    texto = extrair_paginas("tabela.pdf", arquivo.read_bytes())[0]
+    assert texto.startswith("4.13. Requisitos de Experiência Profissional")
+    assert "Desenvolvedor Sênior - ASP e .NET | mínima de 5 (cinco) anos em desenvolvimento | Curso superior" in texto

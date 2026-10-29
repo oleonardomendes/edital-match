@@ -66,20 +66,61 @@ def tabela_em_linhas(texto_layout: str) -> str | None:
     return "\n".join(_LACUNA.sub(" | ", l) for l in linhas)
 
 
+def _celula(c: str | None) -> str:
+    return " ".join((c or "").split())
+
+
+def paginas_com_tabela(conteudo: bytes, numeros: list[int]) -> dict[int, str]:
+    """Relê com o pdfplumber as páginas que têm tabela.
+
+    O pdfplumber usa as linhas desenhadas da tabela para separar as células, então
+    cada linha da tabela vira uma linha de texto ("célula | célula | célula") com o
+    conteúdo completo de cada célula, sem misturar linhas diferentes. O texto fora
+    das tabelas continua na página, na ordem.
+    """
+    import pdfplumber
+
+    saida: dict[int, str] = {}
+    with pdfplumber.open(io.BytesIO(conteudo)) as pdf:
+        for n in numeros:
+            page = pdf.pages[n]
+            tabelas = page.find_tables()
+            if not tabelas:
+                continue
+            caixas = [t.bbox for t in tabelas]
+
+            def fora(obj, caixas=caixas):
+                return not any(obj.get("x0", 0) >= x0 - 1 and obj.get("x1", 0) <= x1 + 1 and obj.get("top", 0) >= y0 - 1
+                               and obj.get("bottom", 0) <= y1 + 1 for x0, y0, x1, y1 in caixas)
+
+            partes = [page.filter(fora).extract_text() or ""]
+            for t in tabelas:
+                linhas = [" | ".join(_celula(c) for c in linha) for linha in t.extract() if any(linha)]
+                partes.append("\n".join(linhas))
+            saida[n] = "\n".join(p for p in partes if p.strip())
+    return saida
+
+
 def _pdf(conteudo: bytes) -> list[str]:
     try:
         reader = PdfReader(io.BytesIO(conteudo))
-        paginas = []
-        for page in reader.pages:
-            texto = page.extract_text() or ""
+        paginas, suspeitas = [], []
+        for i, page in enumerate(reader.pages):
+            paginas.append(page.extract_text() or "")
             try:
-                tabela = tabela_em_linhas(page.extract_text(extraction_mode="layout") or "")
+                if tabela_em_linhas(page.extract_text(extraction_mode="layout") or ""):
+                    suspeitas.append(i)
             except Exception:  # o modo layout falha em alguns PDFs; o texto comum continua valendo
-                tabela = None
-            paginas.append(tabela or texto)
-        return paginas
+                pass
     except Exception as exc:  # pypdf lança vários tipos
         raise DocumentoInvalido("PDF corrompido ou protegido por senha.") from exc
+    if suspeitas:
+        try:
+            for n, texto in paginas_com_tabela(conteudo, suspeitas).items():
+                paginas[n] = texto
+        except Exception:  # se o pdfplumber falhar, fica a leitura comum
+            pass
+    return paginas
 
 
 def _docx(conteudo: bytes) -> str:
