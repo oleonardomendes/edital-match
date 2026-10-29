@@ -22,7 +22,7 @@ from app.extraction.llm import LLM, ErroExtracao
 from app.matching.embeddings import Embedder
 from app.matching.scorer import Scorer
 from app.rag.busca import indexar, tem_indice
-from app.rag.contexto import CONSULTAS_CARGOS, contexto_do_cargo, montar_contexto
+from app.rag.contexto import CONSULTAS_CARGOS, contexto_do_cargo, contexto_dos_cargos, montar_contexto
 from app.rag.perguntas import perguntar
 from app.schemas import PerfilCandidato, PerfilEdital, Ranking, RequisitosEdital
 from app.services import get_embedder, get_llm, get_scorer, texto_para_busca
@@ -95,7 +95,7 @@ def _processar_edital(nome: str, paginas: list[str], session: Session, extractor
         else:
             # Edital longo: primeiro a lista de cargos; os requisitos de cada cargo são
             # extraídos depois, cada um com os trechos recuperados para ele.
-            contexto = montar_contexto(session, e.id, embedder, limite, consultas=CONSULTAS_CARGOS, vizinhos=True)[0]
+            contexto = contexto_dos_cargos(session, e.id, embedder, limite)
             lista = extractor.cargos(texto, contexto)
             requisitos = RequisitosEdital(
                 orgao=lista.orgao, numero=lista.numero, objeto=lista.objeto, regras_equipe=lista.regras_equipe,
@@ -547,8 +547,7 @@ def ver_contexto(token: str, edital_id: int, cargo: str | None = None, session: 
     limite = get_settings().edital_max_chars
     if cargo:
         return {"contexto": contexto_do_cargo(session, edital_id, cargo, embedder, limite)}
-    texto, usados = montar_contexto(session, edital_id, embedder, limite, consultas=CONSULTAS_CARGOS, vizinhos=True)
-    return {"contexto": texto, "trechos": [{"pagina": r.pagina, "fontes": r.fontes} for r in usados]}
+    return {"contexto": contexto_dos_cargos(session, edital_id, embedder, limite)}
 
 
 @app.get("/api/admin/pdf-teste", include_in_schema=False)

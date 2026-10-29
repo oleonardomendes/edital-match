@@ -41,6 +41,44 @@ CONSULTAS_CARGOS = [
 ]
 
 
+def primeiras_colunas(session: Session, edital_id: int, limite: int = 2_500) -> str:
+    """Primeira célula de cada linha das tabelas do edital, com a página.
+
+    Os perfis da equipe quase sempre aparecem como linhas de uma tabela
+    ("Arquiteto Pleno | formação | experiência | ..."). A busca por similaridade
+    acha alguns trechos dessa tabela, mas não todos. Esta lista curta, tirada da
+    estrutura do documento, dá ao LLM a visão do quadro inteiro.
+    """
+    linhas = session.scalars(
+        select(TrechoEdital).where(TrechoEdital.edital_id == edital_id, TrechoEdital.texto.contains(" | ")).order_by(TrechoEdital.ordem)
+    )
+    vistos, saida, tamanho = set(), [], 0
+    for t in linhas:
+        for linha in t.texto.splitlines():
+            celulas = [c.strip() for c in linha.split(" | ")]
+            if len(celulas) < 3 or not 4 <= len(celulas[0]) <= 80:
+                continue
+            chave = celulas[0].lower()
+            if chave in vistos:
+                continue
+            vistos.add(chave)
+            item = f"- {celulas[0]} (p. {t.pagina})"
+            if tamanho + len(item) > limite:
+                break
+            saida.append(item)
+            tamanho += len(item) + 1
+    return "\n".join(saida)
+
+
+def contexto_dos_cargos(session: Session, edital_id: int, embedder: Embedder, limite: int) -> str:
+    """Contexto da etapa 1: trechos recuperados mais a primeira coluna das tabelas."""
+    tabelas = primeiras_colunas(session, edital_id, limite=min(2_500, limite // 3))
+    texto, _ = montar_contexto(session, edital_id, embedder, limite - len(tabelas), consultas=CONSULTAS_CARGOS, vizinhos=True)
+    if tabelas:
+        texto += "\n\n[Tabelas do edital: primeira coluna de cada linha]\n" + tabelas
+    return texto
+
+
 def contexto_do_cargo(session: Session, edital_id: int, cargo: str, embedder: Embedder, limite: int) -> str:
     """Trechos que descrevem um perfil específico (formação, experiência, conhecimentos)."""
     consultas = [cargo, f"{cargo} formação curso superior experiência mínima anos", f"{cargo} conhecimentos certificação"]

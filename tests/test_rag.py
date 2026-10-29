@@ -202,3 +202,16 @@ def test_resposta_serializa():
     from app.rag.perguntas import RespostaEdital
 
     assert json.loads(RespostaEdital(encontrou=False, resposta="x").model_dump_json())["paginas"] == []
+
+
+@pg
+def test_primeiras_colunas_das_tabelas(sessao):
+    from app.matching.embeddings import HashingEmbedder
+    from app.rag.busca import indexar
+    from app.rag.contexto import primeiras_colunas
+
+    s, eid = sessao
+    paginas = _paginas() + ["Perfil | Experiência | Formação\nArquiteto Pleno | 3 anos | TI\nDesenvolvedor Sênior | 5 anos | TI\nArquiteto Pleno | 3 anos | TI"]
+    indexar(s, eid, paginas, HashingEmbedder())
+    lista = primeiras_colunas(s, eid)
+    assert lista.splitlines() == ["- Perfil (p. 8)", "- Arquiteto Pleno (p. 8)", "- Desenvolvedor Sênior (p. 8)"]
