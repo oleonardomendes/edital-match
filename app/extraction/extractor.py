@@ -36,13 +36,14 @@ def chave_texto(tipo: str, texto: str) -> str:
 
 
 class Extractor:
-    def __init__(self, llm: LLM, cache: Cache) -> None:
+    def __init__(self, llm: LLM, cache: Cache, limite_edital: int = 40_000) -> None:
         self.llm = llm
         self.cache = cache
+        self.limite_edital = limite_edital
 
     def edital(self, texto: str) -> RequisitosEdital:
         # Em editais longos, só os trechos da equipe técnica vão para o LLM.
-        return self._extrair("edital", texto, PROMPT_EDITAL, RequisitosEdital, enviar=selecionar_trechos(texto))
+        return self._extrair("edital", texto, PROMPT_EDITAL, RequisitosEdital, enviar=selecionar_trechos(texto, limite=self.limite_edital))
 
     def candidato(self, texto: str) -> PerfilCandidato:
         return self._extrair("cv", texto, PROMPT_CV, PerfilCandidato)

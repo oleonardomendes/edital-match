@@ -57,7 +57,7 @@ def carregar_cache_demo() -> None:
 
 
 def get_extractor(session: Session = Depends(get_session), llm: LLM = Depends(get_llm)) -> Extractor:
-    return Extractor(llm, DbCache(session))
+    return Extractor(llm, DbCache(session), limite_edital=get_settings().edital_max_chars)
 
 
 async def _ler(arquivo: UploadFile) -> str:

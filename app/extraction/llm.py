@@ -17,6 +17,23 @@ class ErroExtracao(RuntimeError):
     pass
 
 
+MSG_LIMITE = (
+    "O documento passou do limite de tamanho do provedor de IA. Envie só o termo de referência "
+    "(a parte com a equipe técnica) ou use um plano com limite maior."
+)
+
+
+def _schema_compacto(schema) -> str:
+    """JSON Schema sem títulos e sem espaços: o mesmo contrato com menos tokens."""
+    def limpar(no):
+        if isinstance(no, dict):
+            return {k: limpar(v) for k, v in no.items() if k != "title"}
+        if isinstance(no, list):
+            return [limpar(v) for v in no]
+        return no
+    return json.dumps(limpar(schema.model_json_schema()), ensure_ascii=False, separators=(",", ":"))
+
+
 class LLM(Protocol):
     def extrair(self, instrucoes: str, texto: str, schema: type[T]) -> T: ...
 
@@ -31,21 +48,28 @@ class AnthropicLLM:
         self._model = model
 
     def extrair(self, instrucoes: str, texto: str, schema: type[T]) -> T:
+        from anthropic import APIStatusError
+
         tool = {
             "name": "registrar",
             "description": "Registra os dados extraídos do documento.",
             "input_schema": schema.model_json_schema(),
         }
         for tentativa in range(2):
-            resp = self._client.messages.create(
-                model=self._model,
-                max_tokens=8000,
-                temperature=0,
-                system=instrucoes,
-                tools=[tool],
-                tool_choice={"type": "tool", "name": "registrar"},
-                messages=[{"role": "user", "content": f"<documento>\n{texto}\n</documento>"}],
-            )
+            try:
+                resp = self._client.messages.create(
+                    model=self._model,
+                    max_tokens=8000,
+                    temperature=0,
+                    system=instrucoes,
+                    tools=[tool],
+                    tool_choice={"type": "tool", "name": "registrar"},
+                    messages=[{"role": "user", "content": f"<documento>\n{texto}\n</documento>"}],
+                )
+            except APIStatusError as exc:
+                if exc.status_code in (413, 429):
+                    raise ErroExtracao(MSG_LIMITE) from exc
+                raise ErroExtracao(f"O provedor de IA respondeu com erro {exc.status_code}.") from exc
             bloco = next((b for b in resp.content if b.type == "tool_use"), None)
             if bloco is None:
                 continue
@@ -66,23 +90,34 @@ class OpenAICompatibleLLM:
         # O plano gratuito do Groq limita tokens por minuto; o SDK espera e tenta de novo.
         self._client = OpenAI(api_key=api_key, base_url=base_url, max_retries=6, timeout=120)
         self._model = model
+        self.max_saida = 4000
 
     def extrair(self, instrucoes: str, texto: str, schema: type[T]) -> T:
         sistema = (
             f"{instrucoes}\n\nResponda somente com um JSON válido que siga este JSON Schema:\n"
-            f"{json.dumps(schema.model_json_schema(), ensure_ascii=False)}"
+            f"{_schema_compacto(schema)}"
         )
         mensagens = [
             {"role": "system", "content": sistema},
             {"role": "user", "content": f"<documento>\n{texto}\n</documento>"},
         ]
+        from openai import APIStatusError
+
+        extra = {"reasoning_effort": "low"} if "gpt-oss" in self._model else {}
         for tentativa in range(2):
-            resp = self._client.chat.completions.create(
-                model=self._model,
-                temperature=0,
-                response_format={"type": "json_object"},
-                messages=mensagens,
-            )
+            try:
+                resp = self._client.chat.completions.create(
+                    model=self._model,
+                    temperature=0,
+                    max_tokens=self.max_saida,
+                    response_format={"type": "json_object"},
+                    messages=mensagens,
+                    extra_body=extra or None,
+                )
+            except APIStatusError as exc:
+                if exc.status_code in (413, 429):
+                    raise ErroExtracao(MSG_LIMITE) from exc
+                raise ErroExtracao(f"O provedor de IA respondeu com erro {exc.status_code}.") from exc
             conteudo = resp.choices[0].message.content or ""
             try:
                 return schema.model_validate_json(conteudo)

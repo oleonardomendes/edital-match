@@ -39,7 +39,7 @@ def gabarito_extracao() -> tuple[RequisitosEdital, list[PerfilCandidato]]:
 def carregar(modo: str, llm=None) -> tuple[RequisitosEdital, list[PerfilCandidato]]:
     if modo == "gabarito":
         return gabarito_extracao()
-    ext = Extractor(llm or get_llm(), MemoryCache())
+    ext = Extractor(llm or get_llm(), MemoryCache(), limite_edital=get_settings().edital_max_chars)
     ler = lambda nome: extrair_texto(nome, (PDFS / nome).read_bytes())  # noqa: E731
     edital = ext.edital(ler("edital_vale_verde.pdf"))
     return edital, [ext.candidato(ler(c["arquivo"])) for c in CANDIDATOS]

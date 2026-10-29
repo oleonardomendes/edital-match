@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     embedding_model: str | None = None
 
     max_upload_mb: int = 10
+    # Máximo de caracteres do edital enviados ao LLM. Planos gratuitos pedem valores menores (~12000).
+    edital_max_chars: int = 40_000
 
     # Libera a rota /api/avaliacao, que roda a avaliação com o LLM configurado.
     admin_token: str | None = None
