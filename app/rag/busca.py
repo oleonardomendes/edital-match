@@ -25,6 +25,8 @@ from app.matching.text import normalizar
 from app.rag.chunking import Trecho, dividir
 
 RRF_K = 60
+# Normalização do ts_rank_cd (bits do Postgres): 0 = nenhuma; 1 = divide por 1 + log(tamanho do trecho).
+RANK_NORM = 0
 
 
 @dataclass
@@ -66,7 +68,10 @@ def _consulta_textual(pergunta: str):
     return func.websearch_to_tsquery("portuguese", " or ".join(palavras))
 
 
-def buscar(session: Session, edital_id: int, pergunta: str, embedder: Embedder, k: int = 6, candidatos: int = 20) -> list[Resultado]:
+def buscar(session: Session, edital_id: int, pergunta: str, embedder: Embedder, k: int = 6, candidatos: int = 20,
+           rrf_k: int | None = None, norm: int | None = None) -> list[Resultado]:
+    rrf_k = RRF_K if rrf_k is None else rrf_k
+    norm = RANK_NORM if norm is None else norm
     vetor = embedder.embed([pergunta])[0]
     por_vetor = session.scalars(
         select(TrechoEdital)
@@ -79,7 +84,7 @@ def buscar(session: Session, edital_id: int, pergunta: str, embedder: Embedder, 
     por_texto = session.scalars(
         select(TrechoEdital)
         .where(TrechoEdital.edital_id == edital_id, TrechoEdital.tsv.op("@@")(q))
-        .order_by(func.ts_rank_cd(TrechoEdital.tsv, q).desc())
+        .order_by(func.ts_rank_cd(TrechoEdital.tsv, q, norm).desc())
         .limit(candidatos)
     ).all()
 
@@ -87,7 +92,7 @@ def buscar(session: Session, edital_id: int, pergunta: str, embedder: Embedder, 
     for fonte, lista in (("vetor", por_vetor), ("texto", por_texto)):
         for posicao, t in enumerate(lista, start=1):
             r = resultados.setdefault(t.id, Resultado(t.id, t.ordem, t.pagina, t.secao, t.texto))
-            r.score += 1 / (RRF_K + posicao)
+            r.score += 1 / (rrf_k + posicao)
             r.fontes.append(fonte)
     return sorted(resultados.values(), key=lambda r: r.score, reverse=True)[:k]
 

@@ -48,22 +48,23 @@ def _so_vetor(session: Session, edital_id: int, pergunta: str, embedder: Embedde
     return [Resultado(t.id, t.ordem, t.pagina, t.secao, t.texto) for t in linhas]
 
 
-def _so_texto(session: Session, edital_id: int, pergunta: str, embedder: Embedder, k: int) -> list[Resultado]:
+def _so_texto(session: Session, edital_id: int, pergunta: str, embedder: Embedder, k: int, norm: int = 0) -> list[Resultado]:
     q = _consulta_textual(pergunta)
     linhas = session.scalars(select(TrechoEdital).where(TrechoEdital.edital_id == edital_id, TrechoEdital.tsv.op("@@")(q))
-                             .order_by(func.ts_rank_cd(TrechoEdital.tsv, q).desc()).limit(k))
+                             .order_by(func.ts_rank_cd(TrechoEdital.tsv, q, norm).desc()).limit(k))
     return [Resultado(t.id, t.ordem, t.pagina, t.secao, t.texto) for t in linhas]
 
 
-def avaliar_busca(session: Session, edital_id: int, perguntas: list[dict], embedder: Embedder, ks=(1, 3, 5)) -> dict:
+def avaliar_busca(session: Session, edital_id: int, perguntas: list[dict], embedder: Embedder, ks=(1, 3, 5),
+                  rrf_k: int = RRF_K, norm: int = 0, candidatos: int = 20) -> dict:
     kmax = max(ks)
     metodos = {
-        "hibrida": lambda q: buscar(session, edital_id, q, embedder, k=kmax),
+        "hibrida": lambda q: buscar(session, edital_id, q, embedder, k=kmax, candidatos=candidatos, rrf_k=rrf_k, norm=norm),
         "vetorial": lambda q: _so_vetor(session, edital_id, q, embedder, kmax),
-        "textual": lambda q: _so_texto(session, edital_id, q, embedder, kmax),
+        "textual": lambda q: _so_texto(session, edital_id, q, embedder, kmax, norm),
     }
     total_trechos = session.scalar(select(func.count()).where(TrechoEdital.edital_id == edital_id))
-    saida: dict = {"perguntas": len(perguntas), "trechos_indexados": total_trechos, "rrf_k": RRF_K, "metodos": {}, "erros_hibrida": []}
+    saida: dict = {"perguntas": len(perguntas), "trechos_indexados": total_trechos, "rrf_k": rrf_k, "norm": norm, "candidatos": candidatos, "metodos": {}, "erros_hibrida": []}
     for nome, busca in metodos.items():
         posicoes = []
         for p in perguntas:
