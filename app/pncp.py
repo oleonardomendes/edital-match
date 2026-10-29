@@ -11,11 +11,14 @@ Os arquivos podem ser PDF, DOCX ou um ZIP com vários documentos.
 from __future__ import annotations
 
 import io
+import logging
 import re
 import zipfile
 from dataclasses import dataclass
 
 import httpx
+
+log = logging.getLogger("uvicorn.error")
 
 BASE = "https://pncp.gov.br"
 FORMATOS = (".pdf", ".docx", ".txt")
@@ -58,6 +61,7 @@ def buscar(q: str, pagina: int = 1, abertas: bool = True, client: httpx.Client |
     try:
         r = c.get(f"{BASE}/api/search/", params=params)
     except httpx.HTTPError as exc:
+        log.warning("PNCP busca falhou: %r", exc)
         raise ErroPNCP("Não foi possível falar com o PNCP agora. Tente de novo em instantes.") from exc
     if r.status_code == 429:
         raise ErroPNCP("O PNCP limitou o número de consultas. Espere um minuto e tente de novo.")
@@ -120,6 +124,7 @@ def baixar_documentos(cnpj: str, ano: int, sequencial: int, limite_mb: int = 30,
             nome = _nome_arquivo(d, f"{a.get('titulo') or 'documento'}-{a.get('sequencialDocumento', len(documentos) + 1)}")
             documentos.extend(_expandir(nome, d.content))
     except httpx.HTTPError as exc:
+        log.warning("PNCP download falhou: %r", exc)
         raise ErroPNCP("Falha ao baixar os arquivos do PNCP.") from exc
     if not documentos:
         raise ErroPNCP("A contratação não tem edital em PDF, DOCX ou TXT no PNCP.")
