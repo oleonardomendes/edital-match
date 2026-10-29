@@ -50,7 +50,7 @@ class Contratacao:
 
 
 def _cliente(client: httpx.Client | None) -> httpx.Client:
-    return client or httpx.Client(timeout=30, follow_redirects=True, headers={"User-Agent": "edital-match/0.2"})
+    return client or httpx.Client(timeout=30, follow_redirects=True, headers={"User-Agent": "Mozilla/5.0 (compatible; edital-match/0.2; +https://github.com/oleonardomendes/edital-match)", "Accept": "application/json, */*"})
 
 
 def buscar(q: str, pagina: int = 1, abertas: bool = True, client: httpx.Client | None = None) -> list[Contratacao]:
