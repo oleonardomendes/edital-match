@@ -56,7 +56,24 @@ python -m eval.run_eval
 | Acerto do motivo de inaptidão | 100% |
 | NDCG da ordem dos aptos | 1,0 |
 
-**Limitação:** o conjunto é pequeno e eu ajustei as regras de comparação de texto olhando para ele, então esse número mede consistência, não generalização. O próximo passo é ampliar o gabarito com editais reais. O modo `--modo llm` roda a cadeia inteira, incluindo a extração por LLM, contra o mesmo gabarito.
+A tabela acima usa os requisitos e perfis do gabarito, então mede só o motor de regras.
+
+### Com extração por IA (cadeia completa)
+
+O modo `--modo llm` lê os PDFs, extrai tudo com o LLM e compara a extração e as decisões com o mesmo gabarito. Rodei com `openai/gpt-oss-120b` no Groq:
+
+| Métrica | 1ª rodada | 2ª rodada (prompt ajustado) |
+|---|---|---|
+| Requisitos do edital encontrados | 11 de 12 | 12 de 12 |
+| Obrigatório/desejável correto | 11 de 11 | 12 de 12 |
+| Currículos (nomes, experiências, anos, certificações, formações) | sem erros | sem erros |
+| Acerto apto/inapto (16 decisões) | 93,8% | 100% |
+| Acerto do motivo de inaptidão | 92,3% | 100% |
+| NDCG da ordem dos aptos | 0,5 | 1,0 |
+
+Na 1ª rodada o modelo juntou "Oracle e PL/SQL" num requisito só e listou áreas de formação incompletas, o que deixou uma candidata apta como inapta. Ajustei duas regras no [prompt](app/extraction/prompts.py) e a 2ª rodada acertou tudo.
+
+**Limitação:** o conjunto é pequeno, e tanto as regras de comparação quanto o prompt foram ajustados olhando para ele. Esses números medem consistência, não generalização. O próximo passo é ampliar o gabarito com editais reais.
 
 ## Stack
 
