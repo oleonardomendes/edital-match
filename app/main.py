@@ -521,10 +521,12 @@ def avaliacao_busca(
 
 
 @app.post("/api/admin/reindexar", include_in_schema=False)
-def reindexar(token: str = Query(...), session: Session = Depends(get_session), embedder: Embedder = Depends(get_embedder)):
+def reindexar(token: str = Query(...), edital_id: int | None = None, session: Session = Depends(get_session),
+              embedder: Embedder = Depends(get_embedder)):
     """Recalcula embeddings de editais e currículos, por exemplo depois de trocar o modelo de embeddings."""
     _admin(token)
-    editais = list(session.scalars(select(Edital)))
+    consulta = select(Edital) if edital_id is None else select(Edital).where(Edital.id == edital_id)
+    editais = list(session.scalars(consulta))
     for e in editais:
         indexar(session, e.id, e.texto.split("\f"), embedder)
     candidatos = list(session.scalars(select(Candidato)))
