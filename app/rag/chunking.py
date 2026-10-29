@@ -40,7 +40,9 @@ def eh_titulo(linha: str) -> bool:
         return True
     if _NUMERADO.match(linha) and (maiusculas > 0.6 or len(linha) <= 60):
         return True
-    return maiusculas > 0.85 and len(linha.split()) >= 2
+    # Linha toda em maiúsculas vira título só se for longa o bastante: "ASP e .NET"
+    # numa célula de tabela não é título de seção.
+    return maiusculas > 0.85 and len(linha) >= 12 and sum(len(p) >= 3 for p in linha.split()) >= 2
 
 
 def _partir(linha: str, tamanho: int) -> list[str]:

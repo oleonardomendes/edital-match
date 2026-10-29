@@ -490,6 +490,24 @@ def reindexar(token: str = Query(...), session: Session = Depends(get_session), 
     return {"editais": len(editais), "candidatos": len(candidatos)}
 
 
+@app.get("/api/admin/pdf-teste", include_in_schema=False)
+def pdf_teste(token: str, cnpj: str, ano: int, sequencial: int, inicio: int, fim: int, modo: str = "layout"):
+    """Diagnóstico: texto de páginas de um PDF do PNCP em cada modo de extração do pypdf."""
+    _admin(token)
+    import io as _io
+
+    from pypdf import PdfReader
+
+    saida = []
+    for nome, conteudo in pncp.baixar_documentos(cnpj, ano, sequencial):
+        if not nome.lower().endswith(".pdf"):
+            continue
+        r = PdfReader(_io.BytesIO(conteudo))
+        for n in range(inicio - 1, min(fim, len(r.pages))):
+            saida.append({"arquivo": nome, "pagina": n + 1, "texto": r.pages[n].extract_text(extraction_mode=modo)})
+    return saida
+
+
 @app.get("/", include_in_schema=False)
 def index():
     return FileResponse(RAIZ / "app" / "static" / "index.html")
