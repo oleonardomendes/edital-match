@@ -534,6 +534,18 @@ def reindexar(token: str = Query(...), session: Session = Depends(get_session), 
     return {"editais": len(editais), "candidatos": len(candidatos)}
 
 
+@app.get("/api/admin/contexto", include_in_schema=False)
+def ver_contexto(token: str, edital_id: int, cargo: str | None = None, session: Session = Depends(get_session),
+                 embedder: Embedder = Depends(get_embedder)):
+    """Diagnóstico: o contexto que o RAG monta para a lista de cargos ou para um cargo."""
+    _admin(token)
+    limite = get_settings().edital_max_chars
+    if cargo:
+        return {"contexto": contexto_do_cargo(session, edital_id, cargo, embedder, limite)}
+    texto, usados = montar_contexto(session, edital_id, embedder, limite, consultas=CONSULTAS_CARGOS, vizinhos=True)
+    return {"contexto": texto, "trechos": [{"pagina": r.pagina, "fontes": r.fontes} for r in usados]}
+
+
 @app.get("/api/admin/pdf-teste", include_in_schema=False)
 def pdf_teste(token: str, cnpj: str, ano: int, sequencial: int, inicio: int, fim: int, modo: str = "layout"):
     """Diagnóstico: texto de páginas de um PDF do PNCP em cada modo de extração do pypdf."""
