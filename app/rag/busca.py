@@ -27,6 +27,8 @@ from app.rag.chunking import Trecho, dividir
 RRF_K = 60
 # Normalização do ts_rank_cd (bits do Postgres): 0 = nenhuma; 1 = divide por 1 + log(tamanho do trecho).
 RANK_NORM = 0
+# Peso do voto da busca vetorial no RRF. Com embeddings de hashing (sem significado), vale menos.
+PESO_VETOR = 1.0
 
 
 @dataclass
@@ -92,7 +94,8 @@ def busca_textual(session: Session, edital_id: int, pergunta: str, limite: int, 
 
 
 def buscar(session: Session, edital_id: int, pergunta: str, embedder: Embedder, k: int = 6, candidatos: int = 20,
-           rrf_k: int | None = None, norm: int | None = None) -> list[Resultado]:
+           rrf_k: int | None = None, norm: int | None = None, peso_vetor: float | None = None) -> list[Resultado]:
+    peso_vetor = PESO_VETOR if peso_vetor is None else peso_vetor
     rrf_k = RRF_K if rrf_k is None else rrf_k
     norm = RANK_NORM if norm is None else norm
     vetor = embedder.embed([pergunta])[0]
@@ -106,10 +109,10 @@ def buscar(session: Session, edital_id: int, pergunta: str, embedder: Embedder, 
     por_texto = busca_textual(session, edital_id, pergunta, candidatos, norm)
 
     resultados: dict[int, Resultado] = {}
-    for fonte, lista in (("vetor", por_vetor), ("texto", por_texto)):
+    for fonte, lista, peso in (("vetor", por_vetor, peso_vetor), ("texto", por_texto, 1.0)):
         for posicao, t in enumerate(lista, start=1):
             r = resultados.setdefault(t.id, Resultado(t.id, t.ordem, t.pagina, t.secao, t.texto))
-            r.score += 1 / (rrf_k + posicao)
+            r.score += peso / (rrf_k + posicao)
             r.fontes.append(fonte)
     return sorted(resultados.values(), key=lambda r: r.score, reverse=True)[:k]
 

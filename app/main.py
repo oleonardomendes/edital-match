@@ -502,6 +502,7 @@ def avaliacao_busca(
     rrf_k: int = 60,
     norm: int = 0,
     candidatos: int = 20,
+    peso_vetor: float | None = None,
     session: Session = Depends(get_session),
     embedder: Embedder = Depends(get_embedder),
 ):
@@ -517,7 +518,7 @@ def avaliacao_busca(
     except KeyError as exc:
         raise HTTPException(404, f"Conjunto {conjunto!r} não existe no gabarito.") from exc
     _garantir_indice(e, session, embedder)
-    resultado = avaliar_busca(session, edital_id, gab["perguntas"], embedder, rrf_k=rrf_k, norm=norm, candidatos=candidatos)
+    resultado = avaliar_busca(session, edital_id, gab["perguntas"], embedder, rrf_k=rrf_k, norm=norm, candidatos=candidatos, peso_vetor=peso_vetor)
     resultado["embedder"] = get_settings().embedding_provider
     log.info("AVALIACAO_BUSCA %s %s", conjunto, json.dumps(resultado, ensure_ascii=False))
     return resultado
