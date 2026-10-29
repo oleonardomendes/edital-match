@@ -60,12 +60,35 @@ def tem_indice(session: Session, edital_id: int) -> bool:
     return session.scalar(select(func.count()).where(TrechoEdital.edital_id == edital_id)) > 0
 
 
-def _consulta_textual(pergunta: str):
-    # "ou" entre as palavras: um trecho não precisa ter todas para aparecer;
-    # o ranking (ts_rank_cd) premia quem tem mais e mais próximas.
+def _palavras(pergunta: str) -> list[str]:
     # Só letras e números: "-" e aspas têm significado especial no websearch_to_tsquery.
-    palavras = [p for p in re.sub(r"[^a-z0-9]+", " ", normalizar(pergunta)).split() if len(p) > 1]
-    return func.websearch_to_tsquery("portuguese", " or ".join(palavras))
+    return [p for p in re.sub(r"[^a-z0-9]+", " ", normalizar(pergunta)).split() if len(p) > 1]
+
+
+def _consulta_textual(pergunta: str, todas: bool = False):
+    """Consulta de texto: com todas as palavras (E) ou com qualquer uma (OU)."""
+    return func.websearch_to_tsquery("portuguese", (" " if todas else " or ").join(_palavras(pergunta)))
+
+
+def busca_textual(session: Session, edital_id: int, pergunta: str, limite: int, norm: int | None = None) -> list[TrechoEdital]:
+    """Primeiro os trechos com todas as palavras da pergunta; depois, os que têm só algumas.
+
+    Só com "OU", trechos de tabela que repetem "experiência" e "profissional"
+    dezenas de vezes ganham de um parágrafo que responde à pergunta inteira.
+    """
+    norm = RANK_NORM if norm is None else norm
+    saida: list[TrechoEdital] = []
+    for todas in (True, False):
+        q = _consulta_textual(pergunta, todas)
+        consulta = (select(TrechoEdital)
+                    .where(TrechoEdital.edital_id == edital_id, TrechoEdital.tsv.op("@@")(q))
+                    .order_by(func.ts_rank_cd(TrechoEdital.tsv, q, norm).desc())
+                    .limit(limite))
+        vistos = {t.id for t in saida}
+        saida += [t for t in session.scalars(consulta) if t.id not in vistos]
+        if len(saida) >= limite:
+            break
+    return saida[:limite]
 
 
 def buscar(session: Session, edital_id: int, pergunta: str, embedder: Embedder, k: int = 6, candidatos: int = 20,
@@ -80,13 +103,7 @@ def buscar(session: Session, edital_id: int, pergunta: str, embedder: Embedder, 
         .limit(candidatos)
     ).all()
 
-    q = _consulta_textual(pergunta)
-    por_texto = session.scalars(
-        select(TrechoEdital)
-        .where(TrechoEdital.edital_id == edital_id, TrechoEdital.tsv.op("@@")(q))
-        .order_by(func.ts_rank_cd(TrechoEdital.tsv, q, norm).desc())
-        .limit(candidatos)
-    ).all()
+    por_texto = busca_textual(session, edital_id, pergunta, candidatos, norm)
 
     resultados: dict[int, Resultado] = {}
     for fonte, lista in (("vetor", por_vetor), ("texto", por_texto)):
