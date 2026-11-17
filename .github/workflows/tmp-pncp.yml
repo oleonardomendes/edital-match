@@ -1,26 +1,27 @@
-name: tmp-baixar-pncp
+name: tmp-comparativo-txtai
 on:
   push:
     branches: [tmp-pncp-dados]
 permissions:
   contents: write
 jobs:
-  baixar:
+  comparar:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env: { POSTGRES_USER: edital, POSTGRES_PASSWORD: edital, POSTGRES_DB: edital_match }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U edital" --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://edital:edital@localhost:5432/edital_match
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: pip install httpx==0.28.1
-      - run: |
-          mkdir -p dados_pncp
-          python - <<'PY'
-          import os
-          from app import pncp
-          for nome, dados in pncp.baixar_documentos("04034872000121", 2024, 138):
-              p = os.path.join("dados_pncp", os.path.basename(nome))
-              open(p, "wb").write(dados); print(p, len(dados))
-          PY
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install -r requirements.txt txtai
+      - run: python -m eval.comparar_txtai --pasta dados_pncp --saida eval/resultados/comparativo_txtai.json
       - run: |
           git config user.name "github-actions"; git config user.email "actions@github.com"
-          git add dados_pncp && git commit -m "dados temporários do PNCP" && git push
+          git add eval/resultados && git commit -m "resultado do comparativo txtai" && git push
