@@ -93,8 +93,30 @@ Edital público do Tribunal de Justiça do Acre: Pregão Eletrônico 36/2024, f�
 
 A avaliação também mostrou um erro meu: cortar todo trecho na quebra de página, para a citação ficar exata, derrubou o MRR da busca híbrida de 0,85 para 0,68, porque frases ficavam partidas ao meio. Voltei a deixar o texto corrido atravessar a página e só a página de tabela começa trecho novo.
 
+### Comparativo com o txtai
+
+Rodei o [txtai](https://github.com/neuml/txtai), framework open source de busca semântica e RAG, no mesmo edital, com os mesmos 353 trechos e o mesmo gabarito. Só o motor de busca muda. Script: [`eval/comparar_txtai.py`](eval/comparar_txtai.py); resultado completo: [`eval/resultados/comparativo_txtai.json`](eval/resultados/comparativo_txtai.json). Rodado no GitHub Actions (CPU).
+
+| Motor | Acerto@1 | Acerto@3 | MRR | Indexação |
+|---|---|---|---|---|
+| txtai só palavra-chave (BM25) | 80% | 93% | 0,86 | 0,1 s |
+| txtai híbrido (BM25 + MiniLM inglês, padrão) | 80% | 87% | 0,85 | 27 s |
+| txtai híbrido (BM25 + MiniLM multilíngue) | 73% | 93% | 0,82 | 40 s |
+| **Edital Match híbrida (hashing)** | 73–80% | 87% | 0,82–0,85 | 0,7 s |
+| Edital Match só textual (Postgres full-text) | 67% | 87% | 0,76 | 0,7 s |
+| Edital Match híbrida (MiniLM multilíngue) | 53% | 73% | 0,66 | 29 s |
+| txtai denso multilíngue | 47% | 60% | 0,55 | 40 s |
+| txtai padrão (só denso, MiniLM inglês) | 33% | 47% | 0,41 | 27 s |
+
+O que aprendi:
+- **Palavra-chave venceu.** Edital repete termos exatos ("arquiteto pleno", "comprovação"); BM25 sozinho empatou com o melhor híbrido e indexa em 0,1 s.
+- **Embedding semântico não ajudou aqui.** O MiniLM multilíngue (o modelo que eu queria usar em produção) piorou a minha busca híbrida de 0,82 para 0,66. Modelo pequeno não entende bem português jurídico.
+- **O txtai pronto, na configuração padrão, foi o pior:** busca só vetorial com modelo em inglês. Framework acelera, mas a configuração precisa ser medida.
+- **Próximo passo:** trocar o ranking full-text do Postgres (0,76) por BM25 (0,86) dentro da busca híbrida.
+- **Ressalva:** com 15 perguntas, cada uma vale 6,7 pontos. A mesma busca híbrida deu 80% na minha máquina e 73% no Actions (desempate entre trechos com a mesma nota); diferenças de uma pergunta são ruído.
+
 **Limitações medidas:**
-- **Embeddings:** a demo usa embeddings de hashing (n-gramas), que não entendem significado. O modelo multilíngue local (MiniLM via fastembed) estourou os 512 MB do plano gratuito do Render. Por isso a busca vetorial é a mais fraca da tabela. Com `EMBEDDING_PROVIDER=fastembed` em uma máquina maior, ou `openai`, ela tende a melhorar.
+- **Embeddings:** a demo usa embeddings de hashing (n-gramas), que não entendem significado. O modelo multilíngue local (MiniLM via fastembed) estourou os 512 MB do plano gratuito do Render. Por isso a busca vetorial é a mais fraca da tabela. O comparativo acima mostrou que o MiniLM multilíngue também não resolve; o próximo teste é um modelo de embedding maior, por API.
 - **Sinônimos:** sem embeddings semânticos, "substituir um profissional recusado" não encontra "recusa do profissional e apresentar outro profissional".
 - **Quadro de perfis:** a pergunta "quais perfis compõem a equipe mínima?" não achou a tabela de composição do time. Na extração, a lista das primeiras colunas das tabelas resolve esse caso.
 - **Tamanho do conjunto:** 15 perguntas são poucas para comparar parâmetros. Não ajustei pesos olhando para elas.
