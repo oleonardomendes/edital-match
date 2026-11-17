@@ -1,0 +1,26 @@
+name: tmp-baixar-pncp
+on:
+  push:
+    branches: [tmp-pncp-dados]
+permissions:
+  contents: write
+jobs:
+  baixar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install httpx==0.28.1
+      - run: |
+          mkdir -p dados_pncp
+          python - <<'PY'
+          import os
+          from app import pncp
+          for nome, dados in pncp.baixar_documentos("04034872000121", 2024, 138):
+              p = os.path.join("dados_pncp", os.path.basename(nome))
+              open(p, "wb").write(dados); print(p, len(dados))
+          PY
+      - run: |
+          git config user.name "github-actions"; git config user.email "actions@github.com"
+          git add dados_pncp && git commit -m "dados temporários do PNCP" && git push
